@@ -6,6 +6,7 @@ import logging
 import roadvision3d
 
 from roadvision3d.src.engine.dataloader import build_dataloader
+from roadvision3d.src.engine.model_builder import build_model
 
 
 # TODO: update this
@@ -46,6 +47,13 @@ def main():
     print('Building dataloader...')
     train_loader, val_loader, test_loader = build_dataloader(cfg['dataset'])
     print('dataloader done')
+
+    # build model
+    print('Building model...')
+    model = build_model(cfg['model'], train_loader.dataset.cls_mean_size)
+    print('model done')
+
+
 
 
 if __name__ == '__main__':
