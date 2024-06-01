@@ -7,6 +7,10 @@ import roadvision3d
 
 from roadvision3d.src.engine.dataloader import build_dataloader
 from roadvision3d.src.engine.model_builder import build_model
+from roadvision3d.src.engine.tester import Tester
+from roadvision3d.src.engine.trainer import Trainer
+from roadvision3d.src.engine.optimizer import build_optimizer
+from roadvision3d.src.engine.scheduler import build_lr_scheduler
 
 
 # TODO: update this
@@ -53,6 +57,38 @@ def main():
     model = build_model(cfg['model'], train_loader.dataset.cls_mean_size)
     print('model done')
 
+    # evaluation mode
+    if args.evaluate:
+        tester = Tester(cfg['tester'], cfg['dataset'], model, val_loader, logger)
+        tester.test()
+        return
+
+    if args.test:
+        tester = Tester(cfg['tester'], cfg['dataset'], model, test_loader, logger)
+        tester.test()
+        return
+    
+    #  build optimizer
+    print('Building optimizer...')
+    optimizer = build_optimizer(cfg['optimizer'], model)
+    print('optimizer done')
+
+    # build lr & bnm scheduler
+    print('Building scheduler...')
+    lr_scheduler, warmup_lr_scheduler = build_lr_scheduler(cfg['lr_scheduler'], optimizer, last_epoch=-1)
+    print('scheduler done')
+
+    print('Building trainer...')
+    trainer = Trainer(cfg=cfg,
+                      model=model,
+                      optimizer=optimizer,
+                      train_loader=train_loader,
+                      test_loader=val_loader,
+                      lr_scheduler=lr_scheduler,
+                      warmup_lr_scheduler=warmup_lr_scheduler,
+                      logger=logger)
+    print('Begin training...')
+    trainer.train()
 
 
 

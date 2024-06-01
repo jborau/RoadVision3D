@@ -33,9 +33,9 @@ lr_scheduler:
 
 trainer:
   max_epoch: 600
-  eval_start: 10
-  eval_frequency: 10 # evaluation interval (in epoch)
-  save_frequency: 10 # checkpoint save interval (in epoch)
+  eval_start: 60
+  eval_frequency: 60 # evaluation interval (in epoch)
+  save_frequency: 60 # checkpoint save interval (in epoch)
   disp_frequency: 50 # display interval (in batch)
   log_dir: 'work_dirs/MonoLSS/logs/'
   out_dir: 'work_dirs/MonoLSS/output/'
