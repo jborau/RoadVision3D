@@ -6,7 +6,7 @@ from roadvision3d.src.datasets.kitti import KITTI
 def build_dataloader(cfg):
     # --------------  build kitti dataset ----------------
     if cfg['type'] == 'kitti':
-        train_set = KITTI(root_dir=cfg['root_dir'], split='trainval', cfg=cfg)
+        train_set = KITTI(root_dir=cfg['root_dir'], split='train', cfg=cfg)
         train_loader = DataLoader(dataset=train_set,
                                   batch_size=cfg['batch_size'],
                                   num_workers=cfg['num_workers'],

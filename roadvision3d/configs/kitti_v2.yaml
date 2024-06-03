@@ -29,10 +29,11 @@ optimizer:
 lr_scheduler:
   warmup: True  # 5 epoches, cosine warmup, init_lir=0.00001 in default
   decay_rate: 0.1
-  decay_list: [240, 360, 480]
+  # decay_list: [240, 360, 480]
+  decay_list: [90, 120]
 
 trainer:
-  max_epoch: 600
+  max_epoch: 150
   eval_start: 60
   eval_frequency: 60 # evaluation interval (in epoch)
   save_frequency: 60 # checkpoint save interval (in epoch)

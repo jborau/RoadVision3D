@@ -17,7 +17,7 @@ from roadvision3d.src.engine.scheduler import build_lr_scheduler
 parser = argparse.ArgumentParser(description='implementation of MonoLSS')
 parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
 parser.add_argument('-t', '--test', dest='test', action='store_true', help='evaluate model on test set')
-parser.add_argument('--config', type=str, default='/home/javier/pytorch/RoadVision3D/roadvision3d/configs/kitti.yaml')
+parser.add_argument('--config', type=str, default='/home/javier/pytorch/RoadVision3D/roadvision3d/configs/kitti_v2.yaml')
 args = parser.parse_args()
 
 def create_logger(log_file):
