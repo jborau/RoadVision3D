@@ -125,7 +125,7 @@ class LSS_Loss(nn.Module):
                                                         vis_depth_target,
                                                         vis_depth_uncer)  
         device = vis_depth.device
-        if self.epoch < 100:
+        if self.epoch < 50:
             vis_depth_loss = torch.mean(vis_depth_loss)
         else:
             attention_map_mask = attention_map.view(-1,49)
