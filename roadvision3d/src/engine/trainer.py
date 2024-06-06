@@ -38,12 +38,10 @@ class Trainer(object):
         self.class_name = test_loader.dataset.class_name
         self.label_dir = cfg['dataset']['label_dir']
         self.eval_cls = cfg['dataset']['eval_cls']
-        print('1')
         if self.cfg_train.get('resume_model', None):
             assert os.path.exists(self.cfg_train['resume_model'])
             self.epoch = load_checkpoint(self.model, self.optimizer, self.cfg_train['resume_model'], self.logger, map_location=self.device)
             self.lr_scheduler.last_epoch = self.epoch - 1
-        print(self.device)
         # self.model = torch.nn.DataParallel(model).to(self.device)
         self.model = model.to(self.device)
     def train(self):
@@ -80,8 +78,8 @@ class Trainer(object):
             if ((self.epoch % self.cfg_train['eval_frequency']) == 0 and \
                 self.epoch >= self.cfg_train['eval_start']):
                 self.logger.info('------ EVAL EPOCH %03d ------' % (self.epoch))
-                Car_res = self.eval_one_epoch()
-                self.logger.info(str(Car_res))
+                results = self.eval_one_epoch()
+                self.logger.info(str(results))
 
 
             if ((self.epoch % self.cfg_train['save_frequency']) == 0
@@ -219,12 +217,12 @@ class Trainer(object):
         # self.save_results(results)
         out_dir = os.path.join(self.cfg_train['out_dir'], 'EPOCH_' + str(self.epoch))
         self.save_results(results, out_dir)
-        Car_res = eval.eval_from_scrach(
+        results = eval.eval_from_scrach(
             self.label_dir,
             os.path.join(out_dir, 'data'),
             self.eval_cls,
             ap_mode=40)
-        return Car_res
+        return results
 
     def save_results(self, results, output_dir='./outputs'):
         output_dir = os.path.join(output_dir, 'data')

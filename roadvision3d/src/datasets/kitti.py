@@ -97,7 +97,7 @@ class KITTI(data.Dataset):
         return self.idx_list.__len__()
 
     def __getitem__(self, item):
-        #  ============================   get inputs   ===========================
+        #  ============================   get images   ===========================
         index = int(self.idx_list[item])  # index mapping, get real data id
         img = self.get_image(index)
         img_size = np.array(img.size)

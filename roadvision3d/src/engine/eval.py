@@ -1325,12 +1325,13 @@ def eval_from_scrach(gt_dir, det_dir, eval_cls_list=None, ap_mode=40):
 
     # print('------------------evalute model: {}--------------------'.format(det_dir.split('/')[-3]))
     print('------------------evalute model: {}--------------------'.format(det_dir.split('/')[-2]))
+    results = {}
     for cls in eval_cls_list:
         print('*' * 20 + cls + '*' * 20)
         res = get_official_eval_result(all_gt, all_det, cls, z_axis=1, z_center=1)
-        Car_res = res['detail'][cls]
-        for k in Car_res.keys():
-            print(k, Car_res[k])
+        results[cls] = res['detail'][cls]
+        for k in results[cls].keys():
+            print(k, results[cls][k])
     print('\n')
-    return Car_res
+    return results
 
