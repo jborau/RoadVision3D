@@ -1318,20 +1318,20 @@ def eval_from_scrach(gt_dir, det_dir, eval_cls_list=None, ap_mode=40):
         all_gt.append(gt)
         all_det.append(det)
 
-    if AP_mode == 40:
-        print('-' * 40 + 'AP40 evaluation' + '-' * 40)
-    if AP_mode == 11:
-        print('-' * 40 + 'AP11 evaluation' + '-' * 40)
+    # if AP_mode == 40:
+        # print('-' * 40 + 'AP40 evaluation' + '-' * 40)
+    # if AP_mode == 11:
+        # print('-' * 40 + 'AP11 evaluation' + '-' * 40)
 
     # print('------------------evalute model: {}--------------------'.format(det_dir.split('/')[-3]))
-    print('------------------evalute model: {}--------------------'.format(det_dir.split('/')[-2]))
+    # print('------------------evalute model: {}--------------------'.format(det_dir.split('/')[-2]))
     results = {}
     for cls in eval_cls_list:
-        print('*' * 20 + cls + '*' * 20)
+        # print('*' * 20 + cls + '*' * 20)
         res = get_official_eval_result(all_gt, all_det, cls, z_axis=1, z_center=1)
         results[cls] = res['detail'][cls]
-        for k in results[cls].keys():
-            print(k, results[cls][k])
-    print('\n')
+        # for k in results[cls].keys():
+        #     print(k, results[cls][k])
+    # print('\n')
     return results
 

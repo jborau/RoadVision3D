@@ -50,21 +50,18 @@ class Trainer(object):
         loss_weightor = Hierarchical_Task_Learning(ei_loss)
         for epoch in range(start_epoch, self.cfg_train['max_epoch']):
             # train one epoch
-            self.logger.info('------ TRAIN EPOCH %03d ------' %(epoch + 1))
+            self.logger.log_train_epoch(epoch)
             if self.warmup_lr_scheduler is not None and epoch < 5:
-                self.logger.info('Learning Rate: %f' % self.warmup_lr_scheduler.get_lr()[0])
+                self.logger.log_lr(self.warmup_lr_scheduler.get_lr()[0])
             else:
-                self.logger.info('Learning Rate: %f' % self.lr_scheduler.get_lr()[0])
+                self.logger.log_lr(self.lr_scheduler.get_lr()[0])
 
             # reset numpy seed.
             # ref: https://github.com/pytorch/pytorch/issues/5059
             np.random.seed(np.random.get_state()[1][0] + epoch)
             loss_weights = loss_weightor.compute_weight(ei_loss,self.epoch)
 
-            log_str = 'Weights: '
-            for key in sorted(loss_weights.keys()):
-                log_str += ' %s:%.4f,' %(key[:-4], loss_weights[key])   
-            self.logger.info(log_str)
+            self.logger.log_weights(loss_weights)
 
             ei_loss = self.train_one_epoch(loss_weights)
             self.epoch += 1
@@ -77,9 +74,9 @@ class Trainer(object):
 
             if ((self.epoch % self.cfg_train['eval_frequency']) == 0 and \
                 self.epoch >= self.cfg_train['eval_start']):
-                self.logger.info('------ EVAL EPOCH %03d ------' % (self.epoch))
+                self.logger.log_val_epoch(self.epoch)
                 results = self.eval_one_epoch()
-                self.logger.info(str(results))
+                self.logger.log_val_results(results, ap_mode = 40)
 
 
             if ((self.epoch % self.cfg_train['save_frequency']) == 0
@@ -170,12 +167,7 @@ class Trainer(object):
                     disp_dict[key] += (loss_terms[key]).detach()
             # display statistics in terminal
             if trained_batch % self.cfg_train['disp_frequency'] == 0:
-                log_str = 'BATCH[%04d/%04d]' % (trained_batch, len(self.train_loader))
-                for key in sorted(disp_dict.keys()):
-                    disp_dict[key] = disp_dict[key] / self.cfg_train['disp_frequency']
-                    log_str += ' %s:%.4f,' %(key, disp_dict[key])
-                    disp_dict[key] = 0  # reset statistics
-                self.logger.info(log_str)
+                self.logger.log_iter(trained_batch, len(self.train_loader), disp_dict, self.cfg_train['disp_frequency'])
                 
         for key in stat_dict.keys():
             stat_dict[key] /= trained_batch

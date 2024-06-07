@@ -7,3 +7,4 @@ from .model_saver import load_checkpoint, get_checkpoint_state
 from .eval import *
 from .optimizer import build_optimizer
 from .scheduler import build_lr_scheduler
+from .logger import Logger

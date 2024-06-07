@@ -11,6 +11,7 @@ from roadvision3d.src.engine.tester import Tester
 from roadvision3d.src.engine.trainer import Trainer
 from roadvision3d.src.engine.optimizer import build_optimizer
 from roadvision3d.src.engine.scheduler import build_lr_scheduler
+from roadvision3d.src.engine.logger import Logger
 
 
 # TODO: update this
@@ -18,24 +19,14 @@ parser = argparse.ArgumentParser(description='implementation of MonoLSS')
 parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
 parser.add_argument('-t', '--test', dest='test', action='store_true', help='evaluate model on test set')
 parser.add_argument('--config', type=str, default='/home/javier/pytorch/RoadVision3D/roadvision3d/configs/kitti_v2.yaml')
-args = parser.parse_args()
-
-def create_logger(log_file):
-    log_format = '%(asctime)s  %(levelname)5s  %(message)s'
-    logging.basicConfig(level=logging.INFO, format=log_format, filename=log_file)
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    console.setFormatter(logging.Formatter(log_format))
-    logging.getLogger(__name__).addHandler(console)
-    return logging.getLogger(__name__)
-    
+args = parser.parse_args()    
 
 def main():
     # load cfg
     assert (os.path.exists(args.config))
     cfg = yaml.load(open(args.config, 'r'), Loader=yaml.Loader)
     os.makedirs(cfg['trainer']['log_dir'], exist_ok=True)
-    logger = create_logger(os.path.join(cfg['trainer']['log_dir'], 'train.log'))
+    logger = Logger(cfg['trainer']['log_dir'], 'train.log', cfg['trainer']['max_epoch'])
 
     import shutil
     # TODO: Update this
