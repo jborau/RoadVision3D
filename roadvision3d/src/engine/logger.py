@@ -2,6 +2,7 @@ import logging
 import os
 import time
 from datetime import datetime, timedelta
+import json
 
 def create_logger(log_file):
     log_format = '%(asctime)s  %(levelname)5s  %(message)s'
@@ -14,10 +15,25 @@ def create_logger(log_file):
 
 
 class Logger:
-    def __init__(self, log_file, log_name, total_epoch):
-        self.log_file = os.path.join(log_file, log_name)
+    def __init__(self, log_dir, log_name, total_epoch):
+        self.log_file = os.path.join(log_dir, log_name)
+        self.json_file = os.path.join(log_dir, "train.json")
         self.logger = create_logger(self.log_file)
         self.total_epoch = total_epoch
+        self.data_for_json = self.load_existing_data()
+
+    def load_existing_data(self):
+        """Carga datos existentes desde el archivo JSON si existe."""
+        try:
+            with open(self.json_file, 'r') as file:
+                return json.load(file)
+        except FileNotFoundError:
+            return []
+        
+    def write_json(self):
+            """Escribe los datos acumulados en formato JSON en un archivo."""
+            with open(self.json_file, 'w') as f:
+                json.dump(self.data_for_json, f, indent=4)
 
     def log_train_epoch(self, epoch):
         if epoch == 0:
@@ -36,9 +52,15 @@ class Logger:
 
     def log_iter(self, iter, total_iter, disp_dict, disp_freq):
         log_str = 'BATCH[%04d/%04d]' % (iter, total_iter)
+        data_dict = {
+            'epoch': self.epoch + 1,
+            'iter': iter,
+            'data': {}
+        }
         for key in sorted(disp_dict.keys()):
             disp_dict[key] = disp_dict[key] / disp_freq
             log_str += ' %s:%.4f,' %(key, disp_dict[key])
+            data_dict['data'][key] = disp_dict[key]
             disp_dict[key] = 0  # reset statistics
         
         # Calculate ETA
@@ -50,6 +72,8 @@ class Logger:
         log_str += f' ETA: {eta_str}'
 
         self.logger.info(log_str)
+        self.data_for_json.append(data_dict)
+        self.write_json()
 
 
     def log_val_epoch(self, epoch):
