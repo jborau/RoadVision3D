@@ -1,7 +1,6 @@
 dataset:
   type: 'kitti'
   data_dir: '/home/javier/datasets/kitti'
-  root_dir: '/'
   label_dir: '/home/javier/datasets/kitti/training/label_2'
   eval_cls: ['Car','Pedestrian','Cyclist']
   batch_size: 24
@@ -37,7 +36,7 @@ trainer:
   eval_start: 10
   eval_frequency: 10 # evaluation interval (in epoch)
   save_frequency: 50 # checkpoint save interval (in epoch)
-  disp_frequency: 50 # display interval (in batch)
+  disp_frequency: 10 # display interval (in batch)
   log_dir: 'work_dirs/MonoLSS/logs/'
   out_dir: 'work_dirs/MonoLSS/output/'
   # resume_model: ''

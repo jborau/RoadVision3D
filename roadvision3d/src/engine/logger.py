@@ -32,8 +32,9 @@ class Logger:
         
     def write_json(self):
             """Escribe los datos acumulados en formato JSON en un archivo."""
-            with open(self.json_file, 'w') as f:
-                json.dump(self.data_for_json, f, indent=4)
+            a = 0
+            # with open(self.json_file, 'w') as f:
+            #     json.dump(self.data_for_json, f, indent=4)
 
     def log_train_epoch(self, epoch):
         if epoch == 0:

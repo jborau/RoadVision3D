@@ -16,7 +16,7 @@ def get_checkpoint_state(model=None, optimizer=None, epoch=None):
 
 
 def save_checkpoint(state, filename, logger):
-    logger.info("==> Saving to checkpoint '{}'".format(filename))
+    # logger.info("==> Saving to checkpoint '{}'".format(filename))
     filename = '{}.pth'.format(filename)
     torch.save(state, filename)
 
