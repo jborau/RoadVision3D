@@ -10,7 +10,7 @@ from roadvision3d.src.engine.model_saver import load_checkpoint
 from roadvision3d.src.engine.decode_helper import extract_dets_from_outputs
 from roadvision3d.src.engine.decode_helper import decode_detections
 from roadvision3d.src.datasets.kitti_utils import Object3d
-
+from roadvision3d.src.engine.logger import Logger
 
 def preprocess_image(img, dataset):
     img_size = np.array(img.size)
@@ -54,12 +54,11 @@ def prepare_data(dataset, data_id):
 def inference_on_dataset(data_id, split, cfg, device):
     dataset = KITTI(split=split, cfg=cfg['dataset'])
 
-
     model = build_model(cfg['model'], cfg['dataset']['cls_mean_size'])
     load_checkpoint(model = model,
-                        optimizer = None,
-                        filename = cfg['tester']['resume_model'],
-                        map_location=device)    
+                    optimizer = None,
+                    filename = cfg['tester']['resume_model'],
+                    map_location=device)    
 
     img_tensor, calib_tensor, coord_ranges_tensor = prepare_data(dataset=dataset, data_id=data_id)
 
@@ -86,9 +85,7 @@ def inference_on_dataset(data_id, split, cfg, device):
     info = {key: val.detach().cpu().numpy() for key, val in info.items()}
 
 
-    # cls_mean_size = KITTI(split='train', cfg=cfg['dataset']).cls_mean_size
     cls_mean_size = cfg['dataset']['cls_mean_size']
-    print(cls_mean_size)
     dets = decode_detections(dets = dets,
                             info = info,
                             calibs = calibs,
