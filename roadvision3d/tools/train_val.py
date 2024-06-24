@@ -45,7 +45,7 @@ def main():
 
     # build model
     print('Building model...')
-    model = build_model(cfg['model'], train_loader.dataset.cls_mean_size)
+    model = build_model(cfg['model'], cfg['dataset']['cls_mean_size'])
     print('model done')
 
     # evaluation mode
