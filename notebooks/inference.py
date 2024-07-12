@@ -2,14 +2,14 @@ import numpy as np
 from PIL import Image
 import torch
 
-from roadvision3d.src.datasets.kitti_utils import get_affine_transform
+from roadvision3d.src.datasets.object_3d import get_affine_transform
 from roadvision3d.src.datasets.kitti import KITTI
 from roadvision3d.src.engine.dataloader import build_dataloader
 from roadvision3d.src.engine.model_builder import build_model
 from roadvision3d.src.engine.model_saver import load_checkpoint
 from roadvision3d.src.engine.decode_helper import extract_dets_from_outputs
 from roadvision3d.src.engine.decode_helper import decode_detections
-from roadvision3d.src.datasets.kitti_utils import Object3d
+from roadvision3d.src.datasets.object_3d import Object3d
 from roadvision3d.src.engine.logger import Logger
 
 def preprocess_image(img, dataset):
@@ -94,7 +94,7 @@ def inference_on_dataset(data_id, split, cfg, device):
                             )
     
     results_lines = convert_to_kitti_line(dets[data_id])
-    objects = [Object3d(line) for line in results_lines]
+    objects = [Object3d.from_kitti_line(line) for line in results_lines]
 
     return objects
 

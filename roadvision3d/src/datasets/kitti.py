@@ -11,10 +11,10 @@ from roadvision3d.src.datasets.utils import gaussian_radius
 from roadvision3d.src.datasets.utils import draw_umich_gaussian
 from roadvision3d.src.datasets.utils import get_angle_from_box3d,check_range
 from roadvision3d.src.datasets.kitti_utils import get_objects_from_label
-from roadvision3d.src.datasets.kitti_utils import Calibration
-from roadvision3d.src.datasets.kitti_utils import get_affine_transform
-from roadvision3d.src.datasets.kitti_utils import affine_transform
-from roadvision3d.src.datasets.kitti_utils import compute_box_3d
+from roadvision3d.src.datasets.object_3d import Calibration
+from roadvision3d.src.datasets.object_3d import get_affine_transform
+from roadvision3d.src.datasets.object_3d import affine_transform
+from roadvision3d.src.datasets.object_3d import compute_box_3d
 
 
 import cv2 as cv
@@ -89,7 +89,7 @@ class KITTI(data.Dataset):
     def get_calib(self, idx):
         calib_file = os.path.join(self.calib_dir, '%06d.txt' % idx)
         assert os.path.exists(calib_file)
-        return Calibration(calib_file)
+        return Calibration.from_kitti_calib_file(calib_file)
     
 
 
