@@ -103,9 +103,11 @@ class Trainer(object):
                     targets[key] = targets[key].to(self.device)
     
                 # train one batch
-                criterion = LSS_Loss(self.epoch)
-                outputs = self.model(inputs,coord_ranges,calibs,targets)
-                _, loss_terms = criterion(outputs, targets)
+                # criterion = LSS_Loss(self.epoch)
+                # criterion = self.model.loss(self.epoch)
+                # outputs = self.model(inputs,coord_ranges,calibs,targets)
+                # _, loss_terms = criterion(outputs, targets)
+                loss_terms = self.model(inputs, calibs, targets, coord_ranges, self.epoch) # , targets, self.epoch)
                 
                 trained_batch = batch_idx + 1
                 # accumulate statistics
@@ -134,10 +136,14 @@ class Trainer(object):
             for key in targets.keys(): targets[key] = targets[key].to(self.device)
             # train one batch
             self.optimizer.zero_grad()
-            criterion = LSS_Loss(self.epoch)
-            outputs = self.model(inputs,coord_ranges,calibs,targets)
+            # criterion = LSS_Loss(self.epoch)
+            # criterion = self.model.loss(self.epoch)
+            # outputs = self.model(inputs,coord_ranges,calibs,targets)
 
-            total_loss, loss_terms = criterion(outputs, targets)
+            # total_loss, loss_terms = criterion(outputs, targets)
+            loss_terms = self.model(inputs, calibs, targets, coord_ranges, self.epoch) # , targets, self.epoch)
+            total_loss = float(sum(loss for loss in loss_terms.values()))
+
             
             if loss_weights is not None:
                 total_loss = torch.zeros(1).cuda()
@@ -189,20 +195,25 @@ class Trainer(object):
                 calibs = calibs.to(self.device) 
                 coord_ranges = coord_ranges.to(self.device)
     
-                outputs = self.model(inputs,coord_ranges,calibs,K=50,mode='val')
-
-                dets = extract_dets_from_outputs(outputs, K=50)
-                dets = dets.detach().cpu().numpy()
-                
-                # get corresponding calibs & transform tensor to numpy
-                calibs = [self.test_loader.dataset.get_calib(index)  for index in info['img_id']]
                 info = {key: val.detach().cpu().numpy() for key, val in info.items()}
+                calibs_tmp = [self.test_loader.dataset.get_calib(index)  for index in info['img_id']]
                 cls_mean_size = self.test_loader.dataset.cls_mean_size
-                dets = decode_detections(dets = dets,
-                                        info = info,
-                                        calibs = calibs,
-                                        cls_mean_size=cls_mean_size,
-                                        threshold = self.cfg_test['threshold'])
+                # outputs = self.model(inputs,coord_ranges,calibs,K=50,mode='val')
+                dets = self.model(inputs, calibs, coord_ranges=coord_ranges, K=50, mode='val', calib_tmp=calibs_tmp, info=info, cls_mean_size=cls_mean_size) # , targets, self.epoch)
+
+
+                # dets = extract_dets_from_outputs(outputs, K=50)
+                # dets = dets.detach().cpu().numpy()
+                
+                # # get corresponding calibs & transform tensor to numpy
+                # calibs = [self.test_loader.dataset.get_calib(index)  for index in info['img_id']]
+                # info = {key: val.detach().cpu().numpy() for key, val in info.items()}
+                # cls_mean_size = self.test_loader.dataset.cls_mean_size
+                # dets = decode_detections(dets = dets,
+                #                         info = info,
+                #                         calibs = calibs,
+                #                         cls_mean_size=cls_mean_size,
+                #                         threshold = self.cfg_test['threshold'])
                 results.update(dets)
                 progress_bar.update()
             progress_bar.close()
