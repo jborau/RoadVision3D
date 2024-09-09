@@ -30,7 +30,8 @@ class MonoLSSPredictor(nn.Module):
         # TODO: add this to cfg
         self.head_conv = 256  # default setting for head conv
         self.first_level = first_level
-        self.cls_num = 3
+        self.cls_num = cfg['dataset']['cls_num']
+        self.K = cfg['tester']['top_k']
 
 
         # initialize the head of pipeline, according to heads setting.
@@ -90,7 +91,7 @@ class MonoLSSPredictor(nn.Module):
         
         self.attention.apply(weights_init_xavier)
 
-    def forward(self, feat, calibs, coord_ranges, targets=None, K=50, mode='train'):
+    def forward(self, feat, calibs, coord_ranges, targets=None, mode='train'):
         device_id = feat.device
 
         ret = {}
@@ -112,7 +113,7 @@ class MonoLSSPredictor(nn.Module):
             masks = targets['mask_2d']
             # masks = targets['mask_2d'].type(torch.bool)
         else:    #extract test structure in the test (only) and the val mode
-            inds,cls_ids = _topk(_nms(torch.clamp(ret['heatmap'].sigmoid(), min=1e-4, max=1 - 1e-4)), K=K)[1:3]
+            inds,cls_ids = _topk(_nms(torch.clamp(ret['heatmap'].sigmoid(), min=1e-4, max=1 - 1e-4)), K=self.K)[1:3]
             # if torch.__version__ == '1.10.0+cu113':
             if torch.__version__ in ['1.10.0+cu113', '1.10.0', '1.6.0', '1.4.0']:
                 masks = torch.ones(inds.size()).type(torch.bool).to(device_id)

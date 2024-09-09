@@ -196,10 +196,8 @@ class Trainer(object):
                 coord_ranges = coord_ranges.to(self.device)
     
                 info = {key: val.detach().cpu().numpy() for key, val in info.items()}
-                calibs_tmp = [self.test_loader.dataset.get_calib(index)  for index in info['img_id']]
-                cls_mean_size = self.test_loader.dataset.cls_mean_size
-                # outputs = self.model(inputs,coord_ranges,calibs,K=50,mode='val')
-                dets = self.model(inputs, calibs, coord_ranges=coord_ranges, K=50, mode='val', calib_tmp=calibs_tmp, info=info, cls_mean_size=cls_mean_size) # , targets, self.epoch)
+                info['calibs'] = [self.test_loader.dataset.get_calib(index)  for index in info['img_id']]
+                dets = self.model(inputs, calibs, coord_ranges=coord_ranges, mode='val', info=info) # , targets, self.epoch)
 
 
                 # dets = extract_dets_from_outputs(outputs, K=50)

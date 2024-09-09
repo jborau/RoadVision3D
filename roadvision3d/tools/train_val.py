@@ -18,8 +18,8 @@ from roadvision3d.src.engine.logger import Logger
 parser = argparse.ArgumentParser(description='implementation of MonoLSS')
 parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
 parser.add_argument('-t', '--test', dest='test', action='store_true', help='evaluate model on test set')
-# parser.add_argument('--config', type=str, default='/home/javier/pytorch/RoadVision3D/roadvision3d/configs/kitti_v2.yaml')
-parser.add_argument('--config', type=str, default='/home/javi/Desktop/server/RoadVision3D/roadvision3d/configs/kitti.yaml')
+parser.add_argument('--config', type=str, default='/home/javier/pytorch/RoadVision3D/roadvision3d/configs/kitti.yaml')
+# parser.add_argument('--config', type=str, default='/home/javi/Desktop/server/RoadVision3D/roadvision3d/configs/kitti.yaml')
 args = parser.parse_args()    
 
 def main():
@@ -46,7 +46,7 @@ def main():
 
     # build model
     print('Building model...')
-    model = build_model(cfg['model'], cfg['dataset']['cls_mean_size'])
+    model = build_model(cfg)
     print('model done')
 
     # evaluation mode
