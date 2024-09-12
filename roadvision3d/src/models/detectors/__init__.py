@@ -1,2 +1,2 @@
 from .MonoLSS import MonoLSS
-from .SMOKE import SMOKE
+from .keypoint_detector import KeypointDetector

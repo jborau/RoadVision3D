@@ -110,6 +110,8 @@ class KITTI(data.Dataset):
         random_crop_flag, random_flip_flag = False, False
         random_mix_flag = False
         calib = self.get_calib(index)
+        # print('First calib: ', calib.P2)
+
 
         if self.data_augmentation:
             if np.random.random() < 0.5:
@@ -147,6 +149,10 @@ class KITTI(data.Dataset):
                             img_blend = Image.blend(img, img_temp, alpha=0.5)
                             img = img_blend
                             break
+        if calib.P2[2][2] == 0:
+            print('Calib after random_mix with error in img nº: ', info['img_id'])
+            print('Calib after random_mix with error: ', calib.P2)
+
 
         # add affine transformation for 2d images.
         trans, trans_inv = get_affine_transform(center, crop_size, 0, self.resolution, inv=1)
@@ -168,6 +174,7 @@ class KITTI(data.Dataset):
             objects = self.get_label(index)
             # data augmentation for labels
             if random_flip_flag:
+                calib_temp = calib.P2.copy()
                 calib.flip(img_size)
                 for object in objects:
                     [x1, _, x2, _] = object.box2d
@@ -176,6 +183,11 @@ class KITTI(data.Dataset):
                     object.pos[0] *= -1
                     if object.ry > np.pi:  object.ry -= 2 * np.pi
                     if object.ry < -np.pi: object.ry += 2 * np.pi
+                if calib.P2[2][2] == 0:
+                    print('Calib after flip with error in img nº: ', index)
+                    print('Calib after flip with error: ', calib.P2, calib_temp)
+                    print('Calib before flip was: ', calib_temp)
+                    print('Calib after flip with error in img nº: ', index)
             # labels encoding
             heatmap = np.zeros((self.num_classes, features_size[1], features_size[0]), dtype=np.float32) # C * H * W
             size_2d = np.zeros((self.max_objs, 2), dtype=np.float32)
@@ -371,6 +383,11 @@ class KITTI(data.Dataset):
         info = {'img_id': index,
                 'img_size': img_size,
                 'bbox_downsample_ratio': img_size/features_size}
+        
+        # if calib.P2[2][2] == 0:
+        #     print('Calib before return with error in img nº: ', info['img_id'])
+        #     print('Calib before return with error: ', calib.P2)
+
 
         return inputs, calib.P2, coord_range, targets, info   #calib.P2
 
