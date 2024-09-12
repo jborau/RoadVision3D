@@ -345,7 +345,10 @@ class Calibration(object):
         new_calib_matrix[2,0:2] = new_calib[1:3]
         new_calib_matrix[3,:] = new_calib[3:6]
         new_calib_matrix[-1,-1] = self.P2[-1,-1]
+        Tz = self.P2[2,3]
+        # new_calib_matrix[2, :] = [0.0, 0.0, 1.0, self.P2[2, 3]] 
         self.P2 = new_calib_matrix.T
+        self.P2[2, :] = [0.0, 0.0, 1.0, Tz]  # Correctly assign the third row
         self.cu = self.P2[0, 2]
         self.cv = self.P2[1, 2]
         self.fu = self.P2[0, 0]
