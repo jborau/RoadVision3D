@@ -8,12 +8,19 @@ from roadvision3d.src.models.losses.uncertainty_loss import laplacian_aleatoric_
 
 
 class Hierarchical_Task_Learning:
-    def __init__(self,epoch0_loss,stat_epoch_nums=5):
+    def __init__(self,cfg, epoch0_loss,stat_epoch_nums=5):
         self.index2term = [*epoch0_loss.keys()]
         self.term2index = {term:self.index2term.index(term) for term in self.index2term}  #term2index
         self.stat_epoch_nums = stat_epoch_nums
         self.past_losses=[]
-        self.loss_graph = {'seg_loss':[],
+        if cfg['model']['type']=='SMOKE':
+            self.loss_graph = {'heatmap_loss':[],
+                               'position_loss':[],
+                               'dimension_loss': [],
+                               'rotation_loss':[],
+                           }
+        else:
+            self.loss_graph = {'seg_loss':[],
                            'size2d_loss':[], 
                            'offset2d_loss':[],
                            'offset3d_loss':['size2d_loss','offset2d_loss'],

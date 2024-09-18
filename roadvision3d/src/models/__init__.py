@@ -10,3 +10,4 @@ from .losses.loss_function import extract_input_from_tensor
 from .losses.focal_loss import focal_loss, focal_loss_cornernet
 from .losses.uncertainty_loss import laplacian_aleatoric_uncertainty_loss, laplacian_aleatoric_uncertainty_loss_new, gaussian_aleatoric_uncertainty_loss 
 from .losses.smoke_loss import build_smoke_loss
+from .losses.smoke_postprocessor import build_smoke_postprocessor

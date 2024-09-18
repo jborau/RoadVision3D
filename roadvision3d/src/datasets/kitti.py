@@ -110,8 +110,6 @@ class KITTI(data.Dataset):
         random_crop_flag, random_flip_flag = False, False
         random_mix_flag = False
         calib = self.get_calib(index)
-        # print('First calib: ', calib.P2)
-
 
         if self.data_augmentation:
             if np.random.random() < 0.5:
@@ -149,9 +147,6 @@ class KITTI(data.Dataset):
                             img_blend = Image.blend(img, img_temp, alpha=0.5)
                             img = img_blend
                             break
-        if calib.P2[2][2] == 0:
-            print('Calib after random_mix with error in img nº: ', info['img_id'])
-            print('Calib after random_mix with error: ', calib.P2)
 
 
         # add affine transformation for 2d images.
@@ -183,11 +178,7 @@ class KITTI(data.Dataset):
                     object.pos[0] *= -1
                     if object.ry > np.pi:  object.ry -= 2 * np.pi
                     if object.ry < -np.pi: object.ry += 2 * np.pi
-                if calib.P2[2][2] == 0:
-                    print('Calib after flip with error in img nº: ', index)
-                    print('Calib after flip with error: ', calib.P2, calib_temp)
-                    print('Calib before flip was: ', calib_temp)
-                    print('Calib after flip with error in img nº: ', index)
+
             # labels encoding
             heatmap = np.zeros((self.num_classes, features_size[1], features_size[0]), dtype=np.float32) # C * H * W
             size_2d = np.zeros((self.max_objs, 2), dtype=np.float32)
@@ -201,6 +192,9 @@ class KITTI(data.Dataset):
             height2d = np.zeros((self.max_objs, 1), dtype=np.float32)
             cls_ids = np.zeros((self.max_objs), dtype=np.int64)
             indices = np.zeros((self.max_objs), dtype=np.int64)
+            rotation_y = np.zeros((self.max_objs), dtype=np.float32)
+            position = np.zeros((self.max_objs, 3), dtype=np.float32)
+
             # if torch.__version__ == '1.10.0+cu113':
             if torch.__version__ in ['1.10.0+cu113', '1.10.0', '1.6.0', '1.4.0']:
                 mask_2d = np.zeros((self.max_objs), dtype=np.bool)
@@ -271,6 +265,11 @@ class KITTI(data.Dataset):
                 if heading_angle > np.pi:  heading_angle -= 2 * np.pi  # check range
                 if heading_angle < -np.pi: heading_angle += 2 * np.pi
                 heading_bin[i], heading_res[i] = angle2class(heading_angle)
+
+                rotation_y[i] = objects[i].ry  # Store the adjusted rotation_y
+
+                # Store the adjusted position
+                position[i] = objects[i].pos  # Store the object's posit
 
                 offset_3d[i] = center_3d - center_heatmap
                 src_size_3d[i] = np.array([objects[i].h, objects[i].w, objects[i].l], dtype=np.float32)
@@ -352,6 +351,12 @@ class KITTI(data.Dataset):
                     if heading_angle < -np.pi: heading_angle += 2 * np.pi
                     heading_bin[i + object_num], heading_res[i + object_num] = angle2class(heading_angle)
 
+                    # Assign rotation_y for mixed objects
+                    rotation_y[i + object_num] = objects[i].ry  # Adjust index accordingly
+
+                    # Store the adjusted position
+                    position[i + object_num] = objects[i].pos  # Store the object's position
+
                     offset_3d[i + object_num] = center_3d - center_heatmap
                     src_size_3d[i + object_num] = np.array([objects[i].h, objects[i].w, objects[i].l], dtype=np.float32)
                     mean_size = self.cls_mean_size[self.cls2id[objects[i].cls_type]]
@@ -375,6 +380,8 @@ class KITTI(data.Dataset):
                        'cls_ids': cls_ids,
                        'mask_2d': mask_2d,
                        'vis_depth': vis_depth,
+                       'rotation_y': rotation_y,
+                       'position': position,
                        }
         else:
             targets = {}
@@ -383,11 +390,6 @@ class KITTI(data.Dataset):
         info = {'img_id': index,
                 'img_size': img_size,
                 'bbox_downsample_ratio': img_size/features_size}
-        
-        # if calib.P2[2][2] == 0:
-        #     print('Calib before return with error in img nº: ', info['img_id'])
-        #     print('Calib before return with error: ', calib.P2)
-
 
         return inputs, calib.P2, coord_range, targets, info   #calib.P2
 

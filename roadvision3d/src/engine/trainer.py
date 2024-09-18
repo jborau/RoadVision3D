@@ -25,6 +25,7 @@ class Trainer(object):
                  lr_scheduler,
                  warmup_lr_scheduler,
                  logger):
+        self.cfg = cfg
         self.cfg_train = cfg['trainer']
         self.cfg_test = cfg['tester']
         self.optimizer = optimizer
@@ -47,7 +48,7 @@ class Trainer(object):
     def train(self):
         start_epoch = self.epoch
         ei_loss = self.compute_e0_loss()
-        loss_weightor = Hierarchical_Task_Learning(ei_loss)
+        loss_weightor = Hierarchical_Task_Learning(self.cfg, ei_loss)
         for epoch in range(start_epoch, self.cfg_train['max_epoch']):
             # train one epoch
             self.logger.log_train_epoch(epoch)

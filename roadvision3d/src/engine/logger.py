@@ -3,6 +3,7 @@ import os
 import time
 from datetime import datetime, timedelta
 import json
+import torch
 
 def create_logger(log_file):
     log_format = '%(asctime)s  %(levelname)5s  %(message)s'
@@ -31,10 +32,9 @@ class Logger:
             return []
         
     def write_json(self):
-            """Escribe los datos acumulados en formato JSON en un archivo."""
-            a = 0
-            # with open(self.json_file, 'w') as f:
-            #     json.dump(self.data_for_json, f, indent=4)
+        """Writes the accumulated data in JSON format to a file."""
+        with open(self.json_file, 'w') as f:
+            json.dump(self.data_for_json, f, indent=4)
 
     def log_train_epoch(self, epoch):
         if epoch == 0:
@@ -43,7 +43,8 @@ class Logger:
         self.logger.info('------ TRAIN EPOCH %03d ------' %(self.epoch + 1))
 
     def log_lr(self, lr):
-        self.logger.info('Learning Rate: %f' % lr)
+        self.lr = lr
+        self.logger.info('Learning Rate: %f' % self.lr)
 
     def log_weights(self, loss_weights):
         log_str = 'Weights: '
@@ -56,26 +57,35 @@ class Logger:
         data_dict = {
             'epoch': self.epoch + 1,
             'iter': iter,
+            'lr': self.lr,
             'data': {}
         }
+
         for key in sorted(disp_dict.keys()):
-            disp_dict[key] = disp_dict[key] / disp_freq
-            log_str += ' %s:%.4f,' %(key, disp_dict[key])
-            data_dict['data'][key] = disp_dict[key]
-            disp_dict[key] = 0  # reset statistics
+            # Perform the division
+            disp_value = disp_dict[key] / disp_freq
+
+            # Convert to float if it's a Tensor
+            if isinstance(disp_value, torch.Tensor):
+                value = disp_value.item()
+            else:
+                value = float(disp_value)
+
+            log_str += ' %s:%.4f,' % (key, value)
+            data_dict['data'][key] = value  # Store the float value
+            disp_dict[key] = 0  # Reset statistics
         
         # Calculate ETA
         elapsed_time = time.time() - self.start_time
-        iters_completed = iter + total_iter * (self.epoch)
+        iters_completed = iter + total_iter * self.epoch
         total_iterations = total_iter * self.total_epoch
-        eta = elapsed_time * (total_iterations - iters_completed) / iters_completed if iters_completed != 0 else 0
+        eta = (elapsed_time * (total_iterations - iters_completed) / iters_completed) if iters_completed != 0 else 0
         eta_str = str(timedelta(seconds=int(eta)))
         log_str += f' ETA: {eta_str}'
 
         self.logger.info(log_str)
         self.data_for_json.append(data_dict)
         self.write_json()
-
 
     def log_val_epoch(self, epoch):
         self.logger.info('------ EVAL EPOCH %03d ------' % (epoch))

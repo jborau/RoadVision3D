@@ -45,8 +45,6 @@ class SMOKEPredictor(nn.Module):
         #TODO: check this
         in_channels = in_channels[2] 
 
-        print(head_conv)
-
         self.class_head = nn.Sequential(
             nn.Conv2d(in_channels,
                       head_conv,
@@ -98,9 +96,6 @@ class SMOKEPredictor(nn.Module):
 
         vector_ori = head_regression[:, self.ori_channel, ...].clone()
         head_regression[:, self.ori_channel, ...] = F.normalize(vector_ori)
-        print(head_regression.shape)
-        print(head_class.shape)
-        print(head_class[0])
         return [head_class, head_regression] 
 
 

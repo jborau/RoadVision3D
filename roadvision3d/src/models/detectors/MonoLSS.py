@@ -28,7 +28,7 @@ class MonoLSS(nn.Module):
         Returns:
 
         """
-        if self.training and targets is None:
+        if mode=='train' and targets is None:
             raise ValueError("In training mode, targets should be passed")
         # images = to_image_list(images)
         feat = self.backbone(input)

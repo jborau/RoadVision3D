@@ -143,17 +143,11 @@ class SMOKECoder():
         Returns:
             locations: objects location, shape = [N, 3]
         '''
-        print('points', points.shape)
-        print('points_offset', points_offset.shape)
-        print('depths', depths.shape)
-        print('calibs original', calibs.shape)
-
 
         device = points.device
 
 
         Ks = calibs[:, :3, :3].to(device=device)
-        print('calibs final', Ks.shape)
 
         # number of points
         N = points_offset.shape[0]
@@ -237,22 +231,25 @@ class SMOKECoder():
             rotys[larger_idx] -= 2 * PI
         if len(small_idx) != 0:
             rotys[small_idx] += 2 * PI
+            
+            
+        return rotys, alphas
+    
+        # if flip_mask is not None:
+        #     fm = flip_mask.flatten()
+        #     rotys_flip = fm.float() * rotys
 
-        if flip_mask is not None:
-            fm = flip_mask.flatten()
-            rotys_flip = fm.float() * rotys
+        #     rotys_flip_pos_idx = rotys_flip > 0
+        #     rotys_flip_neg_idx = rotys_flip < 0
+        #     rotys_flip[rotys_flip_pos_idx] -= PI
+        #     rotys_flip[rotys_flip_neg_idx] += PI
 
-            rotys_flip_pos_idx = rotys_flip > 0
-            rotys_flip_neg_idx = rotys_flip < 0
-            rotys_flip[rotys_flip_pos_idx] -= PI
-            rotys_flip[rotys_flip_neg_idx] += PI
+        #     rotys_all = fm.float() * rotys_flip + (1 - fm.float()) * rotys
 
-            rotys_all = fm.float() * rotys_flip + (1 - fm.float()) * rotys
+        #     return rotys_all
 
-            return rotys_all
-
-        else:
-            return rotys, alphas
+        # else:
+            # return rotys, alphas
 
 
 
