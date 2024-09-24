@@ -86,6 +86,7 @@ class Trainer(object):
                 ckpt_name = os.path.join(self.cfg_train['log_dir']+'/checkpoints', 'checkpoint_epoch_%d' % self.epoch)
                 save_checkpoint(get_checkpoint_state(self.model, self.optimizer, self.epoch), ckpt_name, self.logger)
 
+        self.logger.finish_training()
         return None
     
     def compute_e0_loss(self):

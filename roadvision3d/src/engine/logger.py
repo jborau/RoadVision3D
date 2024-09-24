@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 import json
 import torch
 
+from .analysis import generate_and_save_plots
+
 def create_logger(log_file):
     log_format = '%(asctime)s  %(levelname)5s  %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_format, filename=log_file)
@@ -97,4 +99,10 @@ class Logger:
             for metric, values in metrics.items():
                 values_str = ', '.join(map(str, values))
                 formatted_results.append(f"  {metric}: {values_str}")
-        self.logger.info('\n'.join(formatted_results))  
+        self.logger.info('\n'.join(formatted_results))
+    
+    def finish_training(self):
+        self.logger.info('------ TRAINING FINISHED ------')
+        self.logger.info('Generating plots...')
+        generate_and_save_plots(self.json_file)
+        self.logger.info('Plots generated successfully.')
