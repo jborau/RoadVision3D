@@ -20,12 +20,14 @@ dataset:
   cls_num: 3
 
 model:
-  type: 'MonoLSS'
+  type: 'SMOKE'
   backbone: 'dla34'
   neck: 'DLAUp'
-  head: 'MonoLSSHead'
-  loss: 'LSS_Loss'
+  head: 'SmokeHead'
+  loss: 'asfd'
   downsample: 4
+  loss_weight: [10., 5.]
+
 
 
 optimizer:
@@ -35,25 +37,24 @@ optimizer:
 
 lr_scheduler:
   warmup: True  # 5 epoches, cosine warmup, init_lir=0.00001 in default
-  decay_rate: 0.1
+  decay_rate: 0.8
   # decay_list: [240, 360, 480]
-  decay_list: [90, 120]
+  decay_list: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140]
 
 trainer:
   max_epoch: 150
-  eval_start: 10
+  eval_start: 50
   eval_frequency: 10 # evaluation interval (in epoch)
   save_frequency: 50 # checkpoint save interval (in epoch)
-  disp_frequency: 10 # display interval (in batch)
-  log_dir: 'work_dirs/MonoLSS/logs/'
-  out_dir: 'work_dirs/MonoLSS/output/'
+  disp_frequency: 50 # display interval (in batch)
+  log_dir: 'work_dirs/SMOKE/logs/'
+  out_dir: 'work_dirs/SMOKE/output/'
   # resume_model: ''
 
 tester:
   threshold: 0.2  # confidence filter
-  top_k: 50  # max number of boxes
-  out_dir: './MonoLSS/testset_out'
-  resume_model: '/home/javier/pytorch/RoadVision3D/work_dirs/MonoLSS/logs/checkpoints/checkpoint_epoch_150.pth' # pre-trained model path
+  out_dir: './SMOKE/testset_out'
+  resume_model: '/home/javier/pytorch/RoadVision3D/work_dirs/MonoLSS_good/MonoLSS_v2/logs/checkpoints/checkpoint_epoch_150.pth' # pre-trained model path
 
 
 

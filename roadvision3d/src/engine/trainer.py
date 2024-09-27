@@ -25,6 +25,7 @@ class Trainer(object):
                  lr_scheduler,
                  warmup_lr_scheduler,
                  logger):
+        self.cfg = cfg
         self.cfg_train = cfg['trainer']
         self.cfg_test = cfg['tester']
         self.optimizer = optimizer
@@ -47,7 +48,7 @@ class Trainer(object):
     def train(self):
         start_epoch = self.epoch
         ei_loss = self.compute_e0_loss()
-        loss_weightor = Hierarchical_Task_Learning(ei_loss)
+        loss_weightor = Hierarchical_Task_Learning(self.cfg, ei_loss)
         for epoch in range(start_epoch, self.cfg_train['max_epoch']):
             # train one epoch
             self.logger.log_train_epoch(epoch)
@@ -85,6 +86,7 @@ class Trainer(object):
                 ckpt_name = os.path.join(self.cfg_train['log_dir']+'/checkpoints', 'checkpoint_epoch_%d' % self.epoch)
                 save_checkpoint(get_checkpoint_state(self.model, self.optimizer, self.epoch), ckpt_name, self.logger)
 
+        self.logger.finish_training()
         return None
     
     def compute_e0_loss(self):
@@ -103,9 +105,11 @@ class Trainer(object):
                     targets[key] = targets[key].to(self.device)
     
                 # train one batch
-                criterion = LSS_Loss(self.epoch)
-                outputs = self.model(inputs,coord_ranges,calibs,targets)
-                _, loss_terms = criterion(outputs, targets)
+                # criterion = LSS_Loss(self.epoch)
+                # criterion = self.model.loss(self.epoch)
+                # outputs = self.model(inputs,coord_ranges,calibs,targets)
+                # _, loss_terms = criterion(outputs, targets)
+                loss_terms = self.model(inputs, calibs, targets, coord_ranges, self.epoch) # , targets, self.epoch)
                 
                 trained_batch = batch_idx + 1
                 # accumulate statistics
@@ -134,10 +138,14 @@ class Trainer(object):
             for key in targets.keys(): targets[key] = targets[key].to(self.device)
             # train one batch
             self.optimizer.zero_grad()
-            criterion = LSS_Loss(self.epoch)
-            outputs = self.model(inputs,coord_ranges,calibs,targets)
+            # criterion = LSS_Loss(self.epoch)
+            # criterion = self.model.loss(self.epoch)
+            # outputs = self.model(inputs,coord_ranges,calibs,targets)
 
-            total_loss, loss_terms = criterion(outputs, targets)
+            # total_loss, loss_terms = criterion(outputs, targets)
+            loss_terms = self.model(inputs, calibs, targets, coord_ranges, self.epoch) # , targets, self.epoch)
+            total_loss = float(sum(loss for loss in loss_terms.values()))
+
             
             if loss_weights is not None:
                 total_loss = torch.zeros(1).cuda()
@@ -189,20 +197,23 @@ class Trainer(object):
                 calibs = calibs.to(self.device) 
                 coord_ranges = coord_ranges.to(self.device)
     
-                outputs = self.model(inputs,coord_ranges,calibs,K=50,mode='val')
-
-                dets = extract_dets_from_outputs(outputs, K=50)
-                dets = dets.detach().cpu().numpy()
-                
-                # get corresponding calibs & transform tensor to numpy
-                calibs = [self.test_loader.dataset.get_calib(index)  for index in info['img_id']]
                 info = {key: val.detach().cpu().numpy() for key, val in info.items()}
-                cls_mean_size = self.test_loader.dataset.cls_mean_size
-                dets = decode_detections(dets = dets,
-                                        info = info,
-                                        calibs = calibs,
-                                        cls_mean_size=cls_mean_size,
-                                        threshold = self.cfg_test['threshold'])
+                info['calibs'] = [self.test_loader.dataset.get_calib(index)  for index in info['img_id']]
+                dets = self.model(inputs, calibs, coord_ranges=coord_ranges, mode='val', info=info) # , targets, self.epoch)
+
+
+                # dets = extract_dets_from_outputs(outputs, K=50)
+                # dets = dets.detach().cpu().numpy()
+                
+                # # get corresponding calibs & transform tensor to numpy
+                # calibs = [self.test_loader.dataset.get_calib(index)  for index in info['img_id']]
+                # info = {key: val.detach().cpu().numpy() for key, val in info.items()}
+                # cls_mean_size = self.test_loader.dataset.cls_mean_size
+                # dets = decode_detections(dets = dets,
+                #                         info = info,
+                #                         calibs = calibs,
+                #                         cls_mean_size=cls_mean_size,
+                #                         threshold = self.cfg_test['threshold'])
                 results.update(dets)
                 progress_bar.update()
             progress_bar.close()

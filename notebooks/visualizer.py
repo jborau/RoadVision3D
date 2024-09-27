@@ -38,6 +38,8 @@ def draw_3d_bbox_on_image(image, bbox, calib):
     # Ensure corners2d is a list of tuples, not an array of arrays
     corners2d = [tuple(coord) for coord in corners2d]
 
+    print(f"2D Projected Corners for Object: {corners2d}")
+
     # Create a drawing context
     draw = ImageDraw.Draw(image)
     
@@ -61,6 +63,10 @@ def draw_3d_bbox_on_image(image, bbox, calib):
 def draw_3d_bboxes(image, labels, calib):
     for label in labels:
         image = draw_3d_bbox_on_image(image, label, calib)
+        print(f"  Size 3D (h, w, l): {label.h, label.w, label.l}")
+        print(f"  Position: {label.pos}")
+        print(f"  Rotation Y (Yaw): {label.ry}")
+    print(calib.P2)
     # Display the image
     plt.imshow(image)
     plt.axis('off')  # Turn off axis numbers and ticks

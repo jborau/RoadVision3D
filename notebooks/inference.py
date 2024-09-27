@@ -46,21 +46,21 @@ def prepare_data(dataset, data_id):
     img_torch, coord_range = preprocess_image(img_raw, dataset)
 
     # Load and process the calib
-    calib = dataset.get_calib(8)
+    calib = dataset.get_calib(data_id)
     calib_torch = torch.from_numpy(calib.P2).float()
 
-    return img_torch, calib_torch, coord_range
+    return img_torch, calib_torch, coord_range, calib
 
 def inference_on_dataset(data_id, split, cfg, device):
     dataset = KITTI(split=split, cfg=cfg['dataset'])
 
-    model = build_model(cfg['model'], cfg['dataset']['cls_mean_size'])
+    model = build_model(cfg)
     load_checkpoint(model = model,
                     optimizer = None,
                     filename = cfg['tester']['resume_model'],
                     map_location=device)    
 
-    img_tensor, calib_tensor, coord_ranges_tensor = prepare_data(dataset=dataset, data_id=data_id)
+    img_tensor, calib_tensor, coord_ranges_tensor, calib = prepare_data(dataset=dataset, data_id=data_id)
 
     img_tensor = img_tensor.unsqueeze(0).to(device)
     calib_tensor = calib_tensor.unsqueeze(0).to(device)
@@ -68,32 +68,44 @@ def inference_on_dataset(data_id, split, cfg, device):
 
     model = model.to(device)
 
-    outputs = model(img_tensor, coord_ranges_tensor, calib_tensor,K=50,mode='test')
-    dets = extract_dets_from_outputs(outputs=outputs, K=50)
-    dets = dets.detach().cpu().numpy()
-
-    # get corresponding calibs & transform tensor to numpy
-    calib_object = dataset.get_calib(data_id)
-    calibs = [calib_object]  # treat it as a batch
-
     info = {
+        'calibs': [calib],
         'img_id': torch.tensor([data_id]),  # Image ID as a tensor with batch dimension
         'img_size': torch.tensor([[1242, 375]]),  # Image size with batch dimension
         'bbox_downsample_ratio': torch.tensor([[3.8813, 3.9062]])  # Downsample ratio with batch dimension
     }
+    dets = model(img_tensor, calib_tensor, coord_ranges=coord_ranges_tensor, mode='test', info=info)
+    # print(outputs)
+    # dets = extract_dets_from_outputs(outputs=outputs, K=50)
+    # dets = dets.detach().cpu().numpy()
 
-    info = {key: val.detach().cpu().numpy() for key, val in info.items()}
+    # # get corresponding calibs & transform tensor to numpy
+    # calib_object = dataset.get_calib(data_id)
+    # calibs = [calib_object]  # treat it as a batch
+
+    # info = {
+    #     'img_id': torch.tensor([data_id]),  # Image ID as a tensor with batch dimension
+    #     'img_size': torch.tensor([[1242, 375]]),  # Image size with batch dimension
+    #     'bbox_downsample_ratio': torch.tensor([[3.8813, 3.9062]])  # Downsample ratio with batch dimension
+    # }
+
+    # info = {key: val.detach().cpu().numpy() for key, val in info.items()}
 
 
-    cls_mean_size = cfg['dataset']['cls_mean_size']
-    dets = decode_detections(dets = dets,
-                            info = info,
-                            calibs = calibs,
-                            cls_mean_size=cls_mean_size,
-                            threshold = cfg['tester']['threshold']
-                            )
-    
-    results_lines = convert_to_kitti_line(dets[data_id])
+    # cls_mean_size = cfg['dataset']['cls_mean_size']
+    # dets = decode_detections(dets = dets,
+    #                         info = info,
+    #                         calibs = calibs,
+    #                         cls_mean_size=cls_mean_size,
+    #                         threshold = cfg['tester']['threshold']
+    # 
+    #                        )
+
+    keys = list(dets.keys())
+    first_key = keys[0]
+    dets_lines = dets[first_key]
+
+    results_lines = convert_to_kitti_line(dets[keys[0]])
     objects = [Object3d.from_kitti_line(line) for line in results_lines]
 
     return objects

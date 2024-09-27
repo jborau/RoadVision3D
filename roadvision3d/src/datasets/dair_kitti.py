@@ -24,14 +24,18 @@ from roadvision3d.src.datasets.kitti_utils import Object3d
 
 
 
-class KITTI(data.Dataset):
+class DAIR_KITTI(data.Dataset):
     def __init__(self, split, cfg):
         # basic configuration
         self.num_classes = 3
-        self.max_objs = 50
+        self.max_objs = 500
         self.class_name = ['Pedestrian', 'Car', 'Cyclist']
         self.cls2id = {'Pedestrian': 0, 'Car': 1, 'Cyclist': 2}
-        self.resolution = np.array([1280, 384])  # W * H
+        # self.resolution = np.array([1280, 384])  # W * H
+        # self.resolution = np.array([1920, 1080])  # W * H
+        self.resolution = np.array([1920, 1088])  # work with dla-34
+
+        print('Resolution init:', self.resolution)
         self.use_3d_center = cfg['use_3d_center']
         self.writelist = cfg['writelist']
         if cfg['class_merging']:

@@ -4,9 +4,17 @@ import torch.nn as nn
 from roadvision3d.src.models.backbones.backbone import build_backbone, build_neck
 from roadvision3d.src.models.heads.head import build_heads
 
-class MonoLSS(nn.Module):
+
+class KeypointDetector(nn.Module):
+    '''
+    Generalized structure for keypoint based object detector.
+    main parts:
+    - backbone
+    - heads
+    '''
+
     def __init__(self, cfg):
-        super(MonoLSS, self).__init__()
+        super(KeypointDetector, self).__init__()
         self.backbone = build_backbone(cfg['model'])
 
         channels = self.backbone.channels
@@ -19,7 +27,7 @@ class MonoLSS(nn.Module):
         self.heads = build_heads(cfg, self.backbone.channels, self.first_level)
 
 
-    def forward(self, input, calib, targets=None, coord_ranges=None, epoch=1, mode='train', info=None):
+    def forward(self, input, calib, targets=None, coord_ranges=None, epoch=1, K=50, mode='train', calib_tmp=None, info=None, cls_mean_size=None):
         """
         Args:
             images:
@@ -28,19 +36,15 @@ class MonoLSS(nn.Module):
         Returns:
 
         """
-        if mode=='train' and targets is None:
+        if self.training and targets is None:
             raise ValueError("In training mode, targets should be passed")
-        # images = to_image_list(images)
         feat = self.backbone(input)
         feat = self.neck(feat[self.first_level:])
-        result, detector_losses = self.heads(feat, calib, targets, coord_ranges, epoch, mode=mode, info=info)
+        result, detector_losses = self.heads(feat, calib, targets, coord_ranges, epoch, mode=mode, calibs_tmp=calib_tmp, info=info, cls_mean_size=cls_mean_size)
 
-        # if self.training:
-        #     losses = {}
-        #     losses.update(detector_losses)
         if mode=='train':
             losses = {}
             losses.update(detector_losses)
             return losses
-
-        return result
+        else:
+            return result
