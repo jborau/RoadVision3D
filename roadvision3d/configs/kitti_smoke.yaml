@@ -37,9 +37,9 @@ optimizer:
 
 lr_scheduler:
   warmup: True  # 5 epoches, cosine warmup, init_lir=0.00001 in default
-  decay_rate: 0.2
+  decay_rate: 0.8
   # decay_list: [240, 360, 480]
-  decay_list: [50, 100]
+  decay_list: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140]
 
 trainer:
   max_epoch: 150
@@ -53,7 +53,7 @@ trainer:
 
 tester:
   threshold: 0.2  # confidence filter
-  out_dir: './MonoLSS/testset_out'
+  out_dir: './SMOKE/testset_out'
   resume_model: '/home/javier/pytorch/RoadVision3D/work_dirs/MonoLSS_good/MonoLSS_v2/logs/checkpoints/checkpoint_epoch_150.pth' # pre-trained model path
 
 
