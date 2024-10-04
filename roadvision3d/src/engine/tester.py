@@ -40,29 +40,25 @@ class Tester(object):
 
         results = {}
         progress_bar = tqdm.tqdm(total=len(self.data_loader), leave=True, desc='Evaluation Progress')
+
         for batch_idx, (inputs, calibs, coord_ranges, _, info) in enumerate(self.data_loader):
-            # load evaluation data and move data to current device.
-            if type(inputs) != dict:
+            # Move data to the current device
+            if not isinstance(inputs, dict):
                 inputs = inputs.to(self.device)
             else:
-                for key in inputs.keys(): inputs[key] = inputs[key].to(self.device)
+                for key in inputs.keys():
+                    inputs[key] = inputs[key].to(self.device)
             calibs = calibs.to(self.device)
             coord_ranges = coord_ranges.to(self.device)
 
-            outputs = self.model(inputs,coord_ranges,calibs,K=50,mode='test')
-            dets = extract_dets_from_outputs(outputs=outputs, K=50)
-            dets = dets.detach().cpu().numpy()
-
-            # get corresponding calibs & transform tensor to numpy
-            calibs = [self.data_loader.dataset.get_calib(index) for index in info['img_id']]
+            # Process info and include calibs
             info = {key: val.detach().cpu().numpy() for key, val in info.items()}
-            cls_mean_size = self.data_loader.dataset.cls_mean_size
-            dets = decode_detections(dets = dets,
-                                     info = info,
-                                     calibs = calibs,
-                                     cls_mean_size=cls_mean_size,
-                                     threshold = self.cfg['threshold']
-                                     )
+            info['calibs'] = [self.data_loader.dataset.get_calib(index) for index in info['img_id']]
+
+            # Call the model similarly to eval_one_epoch
+            dets = self.model(inputs, calibs, coord_ranges=coord_ranges, mode='val', info=info)
+
+            # Update results
             results.update(dets)
             progress_bar.update()
 
@@ -74,11 +70,16 @@ class Tester(object):
             shutil.rmtree(output_dir)
         self.save_results(results, output_dir=output_dir)
         progress_bar.close()
-        eval.eval_from_scrach(
+
+        self.logger.log_test_epoch()
+
+        results = eval.eval_from_scrach(
             self.label_dir,
             os.path.join(output_dir, 'data'),
             self.eval_cls,
             ap_mode=40)
+        
+        self.logger.log_val_results(results, ap_mode = 40)
 
 
     def save_results(self, results, output_dir='./outputs'):

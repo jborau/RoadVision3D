@@ -92,6 +92,9 @@ class Logger:
     def log_val_epoch(self, epoch):
         self.logger.info('------ EVAL EPOCH %03d ------' % (epoch))
 
+    def log_test_epoch(self):
+        self.logger.info('------ TEST ------')
+
     def log_val_results(self, results, ap_mode):
         formatted_results = []
         for cls, metrics in results.items():
