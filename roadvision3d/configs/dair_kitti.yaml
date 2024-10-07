@@ -53,7 +53,7 @@ tester:
   threshold: 0.2  # confidence filter
   top_k: 50  # max number of boxes
   out_dir: 'work_dirs/MonoLSS_dair/testset_out'
-  resume_model: '/home/javier/pytorch/RoadVision3D/work_dirs/MonoLSS_dair/logs/checkpoints/checkpoint_epoch_150.pth' # pre-trained model path
+  resume_model: '/home/javier/pytorch/RoadVision3D/work_dirs/VEHITS/MonoLSS_dair_GOOD/logs/checkpoints/checkpoint_epoch_150.pth' # pre-trained model path
 
 
 
