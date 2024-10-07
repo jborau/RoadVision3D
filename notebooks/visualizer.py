@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw
+import numpy as np
 
 def draw_2d_bboxes(image, objects):
     for car in objects:
@@ -29,16 +30,15 @@ def draw_bbox_on_image(image, box2d):
     # Return the modified image
     return image
 
-def draw_3d_bbox_on_image(image, bbox, calib):
+def draw_3d_bbox_on_image(image, bbox, calib, camera_pitch):
     # Get the 3D bbox
-    corners3d = bbox.generate_corners3d()
+    corners3d = bbox.generate_corners3d(camera_pitch=camera_pitch)
+    
     # Project the 3D bbox to the image
     corners2d, depths = calib.rect_to_img(corners3d)  # Assuming calib.rect_to_img returns two arrays
 
     # Ensure corners2d is a list of tuples, not an array of arrays
     corners2d = [tuple(coord) for coord in corners2d]
-
-    print(f"2D Projected Corners for Object: {corners2d}")
 
     # Create a drawing context
     draw = ImageDraw.Draw(image)
@@ -51,22 +51,24 @@ def draw_3d_bbox_on_image(image, bbox, calib):
     
     # Draw bottom and top faces
     for i in range(4):
-        draw.line((corners2d[bottom_face[i]], corners2d[bottom_face[i+1]]), fill='red', width=2)
-        draw.line((corners2d[top_face[i]], corners2d[top_face[i+1]]), fill='red', width=2)
+        draw.line((corners2d[bottom_face[i]], corners2d[bottom_face[i+1]]), fill='red', width=4)
+        draw.line((corners2d[top_face[i]], corners2d[top_face[i+1]]), fill='red', width=4)
     
     # Draw vertical edges
     for edge in vertical_edges:
-        draw.line((corners2d[edge[0]], corners2d[edge[1]]), fill='red', width=2)
+        draw.line((corners2d[edge[0]], corners2d[edge[1]]), fill='red', width=4)
 
     return image
 
-def draw_3d_bboxes(image, labels, calib):
+# Updated draw_3d_bboxes to include pitch information
+
+def draw_3d_bboxes(image, labels, calib, pitch):
     for label in labels:
-        image = draw_3d_bbox_on_image(image, label, calib)
-        print(f"  Size 3D (h, w, l): {label.h, label.w, label.l}")
-        print(f"  Position: {label.pos}")
-        print(f"  Rotation Y (Yaw): {label.ry}")
-    print(calib.P2)
+        image = draw_3d_bbox_on_image(image, label, calib, pitch)
+    #     print(f"  Size 3D (h, w, l): {label.h, label.w, label.l}")
+    #     print(f"  Position: {label.pos}")
+    #     print(f"  Rotation Y (Yaw): {label.ry}")
+    # print(calib.P2)
     # Display the image
     plt.imshow(image)
     plt.axis('off')  # Turn off axis numbers and ticks
