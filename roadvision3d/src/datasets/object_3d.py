@@ -57,22 +57,42 @@ class Object3d(object):
             return 4
 
 
-    def generate_corners3d(self):
+    def generate_corners3d(self, camera_pitch=0.0):
         """
-        generate corners3d representation for this object
-        :return corners_3d: (8, 3) corners of box3d in camera coord
+        Generate corners3d representation for this object, considering camera pitch.
+        :param camera_pitch: Pitch rotation of the camera in radians.
+        :return corners_3d: (8, 3) corners of box3d in camera coordinate system.
         """
+        # Box dimensions
         l, h, w = self.l, self.h, self.w
+        
+        # Define the 8 corners of the bounding box in local coordinates
         x_corners = [l / 2, l / 2, -l / 2, -l / 2, l / 2, l / 2, -l / 2, -l / 2]
         y_corners = [0, 0, 0, 0, -h, -h, -h, -h]
         z_corners = [w / 2, -w / 2, -w / 2, w / 2, w / 2, -w / 2, -w / 2, w / 2]
 
-        R = np.array([[np.cos(self.ry), 0, np.sin(self.ry)],
-                      [0, 1, 0],
-                      [-np.sin(self.ry), 0, np.cos(self.ry)]])
+        # Rotation matrix around the y-axis (heading angle of the vehicle)
+        R_y = np.array([
+            [np.cos(self.ry), 0, np.sin(self.ry)],
+            [0, 1, 0],
+            [-np.sin(self.ry), 0, np.cos(self.ry)]
+        ])
+
+        # Rotation matrix around the x-axis (camera pitch)
+        R_pitch = np.array([
+            [1, 0, 0],
+            [0, np.cos(camera_pitch), -np.sin(camera_pitch)],
+            [0, np.sin(camera_pitch), np.cos(camera_pitch)]
+        ])
+
+        # Stack the corners and apply the rotations
         corners3d = np.vstack([x_corners, y_corners, z_corners])  # (3, 8)
-        corners3d = np.dot(R, corners3d).T
-        corners3d = corners3d + self.pos
+        corners3d = np.dot(R_y, corners3d)  # Apply yaw rotation (heading of the vehicle)
+        corners3d = np.dot(R_pitch, corners3d)  # Apply pitch rotation (camera pitch)
+        
+        # Translate the corners to the object's position
+        corners3d = corners3d.T + self.pos
+        
         return corners3d
 
 
