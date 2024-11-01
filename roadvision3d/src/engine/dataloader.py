@@ -2,6 +2,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from roadvision3d.src.datasets.kitti import KITTI
 from roadvision3d.src.datasets.dair_kitti import DAIR_KITTI
+from roadvision3d.src.datasets.dair import DAIR
 
 
 
@@ -31,7 +32,7 @@ def build_dataloader(cfg):
                                  drop_last=False)
         return train_loader, val_loader, test_loader
     
-        # --------------  build kitti dataset ----------------
+    # --------------  build dair_kitti dataset ----------------
     if cfg['type'] == 'dair_kitti':
         train_set = DAIR_KITTI(split='train', cfg=cfg)
         train_loader = DataLoader(dataset=train_set,
@@ -48,6 +49,31 @@ def build_dataloader(cfg):
                                  pin_memory=True,
                                  drop_last=cfg['drop_last_val'])
         test_set = DAIR_KITTI(split='test', cfg=cfg)
+        test_loader = DataLoader(dataset=test_set,
+                                 batch_size=cfg['batch_size'],
+                                 num_workers=cfg['num_workers'],
+                                 shuffle=False,
+                                 pin_memory=True,
+                                 drop_last=False)
+        return train_loader, val_loader, test_loader
+    
+    # --------------  build dair_kitti dataset ----------------
+    if cfg['type'] == 'dair':
+        train_set = DAIR(split='train', cfg=cfg)
+        train_loader = DataLoader(dataset=train_set,
+                                  batch_size=cfg['batch_size'],
+                                  num_workers=cfg['num_workers'],
+                                  shuffle=True,
+                                  pin_memory=True,
+                                  drop_last=True)
+        val_set = DAIR(split='val', cfg=cfg)
+        val_loader = DataLoader(dataset=val_set,
+                                 batch_size=cfg['batch_size'],
+                                 num_workers=cfg['num_workers'],
+                                 shuffle=False,
+                                 pin_memory=True,
+                                 drop_last=cfg['drop_last_val'])
+        test_set = DAIR(split='test', cfg=cfg)
         test_loader = DataLoader(dataset=test_set,
                                  batch_size=cfg['batch_size'],
                                  num_workers=cfg['num_workers'],

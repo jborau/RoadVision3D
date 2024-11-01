@@ -1,5 +1,66 @@
 import numpy as np
 import cv2
+import json
+import math
+
+
+# def get_ry_cam(ry_lidar, calib):
+#     Ry_lidar = np.array([
+#             [np.cos(ry_lidar), 0, np.sin(ry_lidar)],
+#             [0, 1, 0],
+#             [-np.sin(ry_lidar), 0, np.cos(ry_lidar)]
+#         ])
+    
+#     R_v2c = calib.V2C[:, :3]  # Extract rotation matrix
+
+#     # Transform the rotation matrix to camera coordinates
+#     R_y_cam = R_v2c @ Ry_lidar
+
+#     # Compute the rotation angle around Y-axis in camera coordinates
+#     ry_cam = np.arctan2(R_y_cam[2, 0], R_y_cam[0, 0]) # + np.pi / 2
+
+#     return ry_cam
+
+def normalize_angle(angle):
+    # make angle in range [-0.5pi, 1.5pi]
+    alpha_tan = np.tan(angle)
+    alpha_arctan = np.arctan(alpha_tan)
+    if np.cos(angle) < 0:
+        alpha_arctan = alpha_arctan + math.pi
+    return alpha_arctan
+
+
+def get_camera_3d_8points(obj_size, yaw_lidar, center_lidar, center_in_cam, r_velo2cam, t_velo2cam):
+    liadr_r = np.matrix(
+        [[math.cos(yaw_lidar), -math.sin(yaw_lidar), 0], [math.sin(yaw_lidar), math.cos(yaw_lidar), 0], [0, 0, 1]]
+    )
+    l, w, h = obj_size
+    corners_3d_lidar = np.matrix(
+        [
+            [l / 2, l / 2, -l / 2, -l / 2, l / 2, l / 2, -l / 2, -l / 2],
+            [w / 2, -w / 2, -w / 2, w / 2, w / 2, -w / 2, -w / 2, w / 2],
+            [0, 0, 0, 0, h, h, h, h],
+        ]
+    )
+    corners_3d_lidar = liadr_r * corners_3d_lidar + np.matrix(center_lidar[:3]).reshape(3, 1)
+    corners_3d_cam = r_velo2cam * corners_3d_lidar + t_velo2cam.reshape(3, 1)
+
+    x0, z0 = corners_3d_cam[0, 0], corners_3d_cam[2, 0]
+    x3, z3 = corners_3d_cam[0, 3], corners_3d_cam[2, 3]
+    dx, dz = x0 - x3, z0 - z3
+    yaw = math.atan2(-dz, dx)
+
+    alpha = yaw - math.atan2(center_in_cam[0], center_in_cam[2])
+
+    # add transfer
+    if alpha > math.pi:
+        alpha = alpha - 2.0 * math.pi
+    if alpha <= (-1 * math.pi):
+        alpha = alpha + 2.0 * math.pi
+
+    alpha_arctan = normalize_angle(alpha)
+
+    return alpha_arctan, yaw
 
 
 class Object3d(object):
@@ -35,6 +96,35 @@ class Object3d(object):
         score = float(label[15]) if len(label) == 16 else -1.0
 
         return cls(cls_type, alpha, box2d, h, w, l, pos, ry, trucation, occlusion, score)
+    
+    @classmethod
+    def from_dair_json(cls, obj, calib):
+        cls_type = obj['type']
+        trucation = float(obj['truncated_state'])
+        occlusion = float(obj['occluded_state'])
+        alpha = 0
+        box2d = (obj['2d_box']['xmin'],obj['2d_box']['ymin'], obj['2d_box']['xmax'], obj['2d_box']['ymax'])
+        h = float(obj['3d_dimensions']['h'])
+        w = float(obj['3d_dimensions']['w'])
+        l = float(obj['3d_dimensions']['l'])
+        pos_lidar = np.array([
+            float(obj['3d_location']['x']),
+            float(obj['3d_location']['y']),
+            float(obj['3d_location']['z']) - h / 2,  # Adjust for the height of the object
+            1.0  # This is already a float
+        ])
+        ry = float(obj['rotation'])
+
+        score = 0
+        # Transform position to camera coordinates
+        pos_cam = calib.V2C @ pos_lidar  # Shape: (3,)
+
+        obj_size = (h, w, l)
+        r_velo2cam = calib.V2C[:3, :3]  
+        t_velo2cam = calib.V2C[:3, 3]
+        alpha, ry_cam = get_camera_3d_8points(obj_size, ry, pos_lidar, pos_cam, r_velo2cam, t_velo2cam)
+
+        return cls(cls_type, alpha, box2d, h, w, l, pos_cam, ry_cam, trucation, occlusion, score)
 
     def get_obj_level(self):
         height = float(self.box2d[3]) - float(self.box2d[1]) + 1
@@ -198,7 +288,40 @@ class Calibration(object):
         C2V = cls.inverse_rigid_trans(cls, V2C)
 
         return cls(P2, R0, V2C, C2V)
-
+    
+    @classmethod
+    def from_dair_calib_file(cls, camera_calib_file, lidar_calib_file):
+        import numpy as np
+        import json
+        
+        # Load camera calibration
+        with open(camera_calib_file, 'r') as f:
+            camera_calib = json.load(f)
+        
+        # Extract camera matrices
+        cam_K = camera_calib['cam_K']
+        K = np.array(cam_K, dtype=np.float32).reshape(3, 3)  # Ensure float32
+        P2 = np.hstack((K, np.zeros((3, 1), dtype=np.float32)))  # Ensure float32
+        R0_rect = np.eye(3, dtype=np.float32)  # Assuming images are rectified
+        
+        # Load LiDAR calibration
+        with open(lidar_calib_file, 'r') as f:
+            lidar_calib = json.load(f)
+        
+        # Extract LiDAR to camera transformation
+        R_lidar_to_cam = np.array(lidar_calib['rotation'], dtype=np.float32)  # Ensure float32
+        T_lidar_to_cam = np.array(lidar_calib['translation'], dtype=np.float32).reshape(3, 1)  # Ensure float32
+        
+        # Construct V2C
+        V2C = np.hstack((R_lidar_to_cam, T_lidar_to_cam))  # 3×4 in float32
+        
+        # Compute C2V
+        R_C2V = R_lidar_to_cam.T
+        T_C2V = -R_C2V @ T_lidar_to_cam
+        C2V = np.hstack((R_C2V, T_C2V))  # 3×4 in float32
+        
+        # Return Calibration instance with all matrices in float32
+        return cls(P2.astype(np.float32), R0_rect.astype(np.float32), V2C.astype(np.float32), C2V.astype(np.float32))
 
 
     def cart_to_hom(self, pts):
