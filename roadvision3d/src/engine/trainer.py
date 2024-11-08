@@ -28,6 +28,7 @@ class Trainer(object):
         self.cfg = cfg
         self.cfg_train = cfg['trainer']
         self.cfg_test = cfg['tester']
+        self.cfg_dataset = cfg['dataset']
         self.optimizer = optimizer
         self.train_loader = train_loader
         self.test_loader = test_loader
@@ -223,6 +224,8 @@ class Trainer(object):
         results = eval.eval_from_scrach(
             self.label_dir,
             os.path.join(out_dir, 'data'),
+            self.cfg_dataset,
+            'trainval',
             self.eval_cls,
             ap_mode=40)
         return results

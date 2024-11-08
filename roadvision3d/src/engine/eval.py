@@ -10,6 +10,8 @@ import sys
 from tqdm import tqdm
 import warnings
 
+from roadvision3d.src.datasets.dair import DAIR
+
 warnings.filterwarnings('ignore')
 
 AP_mode = 40
@@ -1265,7 +1267,7 @@ def get_coco_eval_result(gt_annos,
     }
 
 
-def eval_from_scrach(gt_dir, det_dir, eval_cls_list=None, ap_mode=40):
+def eval_from_scrach(gt_dir, det_dir, dataset_cfg, split, eval_cls_list=None, ap_mode=40):
     global AP_mode
     AP_mode = ap_mode
 
@@ -1275,45 +1277,47 @@ def eval_from_scrach(gt_dir, det_dir, eval_cls_list=None, ap_mode=40):
     all_gt, all_det = [], []
     all_f = sorted(os.listdir(det_dir))
     for i, f in enumerate(tqdm(all_f)):
-        gt_f = np.loadtxt(os.path.join(gt_dir, f), dtype=str).reshape(-1, 15)
-        det_f = np.loadtxt(os.path.join(det_dir, f), dtype=str).reshape(-1, 16)
+        # gt_f = np.loadtxt(os.path.join(gt_dir, f), dtype=str).reshape(-1, 15)
+        gt = get_gt(gt_dir, f, dataset_cfg, split)
+        # det_f = np.loadtxt(os.path.join(det_dir, f), dtype=str).reshape(-1, 16)
+        det = get_dets(os.path.join(det_dir, f))
 
-        gt = {}
-        det = {}
-        '''bbox'''
-        gt['bbox'] = gt_f[:, 4:8].astype(np.float32)
-        det['bbox'] = det_f[:, 4:8].astype(np.float32)
+        # gt = {}
+        # det = {}
+        # '''bbox'''
+        # gt['bbox'] = gt_f[:, 4:8].astype(np.float32)
+        # det['bbox'] = det_f[:, 4:8].astype(np.float32)
 
-        '''alpha'''
-        gt['alpha'] = gt_f[:, 3].astype(np.float32)
-        det['alpha'] = det_f[:, 3].astype(np.float32)
+        # '''alpha'''
+        # gt['alpha'] = gt_f[:, 3].astype(np.float32)
+        # det['alpha'] = det_f[:, 3].astype(np.float32)
 
-        '''occluded'''
-        gt['occluded'] = gt_f[:, 2].astype(np.float32)
-        det['occluded'] = det_f[:, 2].astype(np.float32)
+        # '''occluded'''
+        # gt['occluded'] = gt_f[:, 2].astype(np.float32)
+        # det['occluded'] = det_f[:, 2].astype(np.float32)
 
-        '''truncated'''
-        gt['truncated'] = gt_f[:, 1].astype(np.float32)
-        det['truncated'] = det_f[:, 1].astype(np.float32)
+        # '''truncated'''
+        # gt['truncated'] = gt_f[:, 1].astype(np.float32)
+        # det['truncated'] = det_f[:, 1].astype(np.float32)
 
-        '''name'''
-        gt['name'] = gt_f[:, 0]
-        det['name'] = det_f[:, 0]
+        # '''name'''
+        # gt['name'] = gt_f[:, 0]
+        # det['name'] = det_f[:, 0]
 
-        '''location'''
-        gt['location'] = gt_f[:, 11:14].astype(np.float32)
-        det['location'] = det_f[:, 11:14].astype(np.float32)
+        # '''location'''
+        # gt['location'] = gt_f[:, 11:14].astype(np.float32)
+        # det['location'] = det_f[:, 11:14].astype(np.float32)
 
-        '''dimensions, convert hwl to lhw'''
-        gt['dimensions'] = gt_f[:, [10, 8, 9]].astype(np.float32)
-        det['dimensions'] = det_f[:, [10, 8, 9]].astype(np.float32)
+        # '''dimensions, convert hwl to lhw'''
+        # gt['dimensions'] = gt_f[:, [10, 8, 9]].astype(np.float32)
+        # det['dimensions'] = det_f[:, [10, 8, 9]].astype(np.float32)
 
-        '''rotation_y'''
-        gt['rotation_y'] = gt_f[:, 14].astype(np.float32)
-        det['rotation_y'] = det_f[:, 14].astype(np.float32)
+        # '''rotation_y'''
+        # gt['rotation_y'] = gt_f[:, 14].astype(np.float32)
+        # det['rotation_y'] = det_f[:, 14].astype(np.float32)
 
-        '''score'''
-        det['score'] = det_f[:, 15].astype(np.float32)
+        # '''score'''
+        # det['score'] = det_f[:, 15].astype(np.float32)
 
         all_gt.append(gt)
         all_det.append(det)
@@ -1335,3 +1339,117 @@ def eval_from_scrach(gt_dir, det_dir, eval_cls_list=None, ap_mode=40):
     # print('\n')
     return results
 
+def get_id_from_path(file_path):
+    """Extract ID from a complete file path."""
+    filename = os.path.basename(file_path)    # Get the filename, e.g., "000008.txt"
+    file_id = os.path.splitext(filename)[0]   # Remove the extension, e.g., "000008"
+    return file_id
+
+def convert_object3d_to_gt(objects):
+    """
+    Convert a list of Object3d instances to a dictionary format for gt processing.
+    """
+    gt = {
+        'bbox': [],
+        'alpha': [],
+        'occluded': [],
+        'truncated': [],
+        'name': [],
+        'location': [],
+        'dimensions': [],
+        'rotation_y': []
+    }
+
+    for obj in objects:
+        gt['bbox'].append(obj.box2d)
+        gt['alpha'].append(obj.alpha)
+        gt['occluded'].append(obj.occlusion)
+        gt['truncated'].append(obj.trucation)
+        gt['name'].append(obj.cls_type)
+        gt['location'].append(obj.pos)
+        gt['dimensions'].append([obj.l, obj.h, obj.w])  # l, h, w order to match lhw format
+        gt['rotation_y'].append(obj.ry)
+
+    # Convert lists to numpy arrays
+    gt['bbox'] = np.array(gt['bbox'], dtype=np.float32)
+    gt['alpha'] = np.array(gt['alpha'], dtype=np.float32)
+    gt['occluded'] = np.array(gt['occluded'], dtype=np.float32)
+    gt['truncated'] = np.array(gt['truncated'], dtype=np.float32)
+    gt['name'] = np.array(gt['name'])
+    gt['location'] = np.array(gt['location'], dtype=np.float32)
+    gt['dimensions'] = np.array(gt['dimensions'], dtype=np.float32)
+    gt['rotation_y'] = np.array(gt['rotation_y'], dtype=np.float32)
+
+    return gt
+
+
+def get_gt(gt_dir, f, dataset_cfg, split):
+    if dataset_cfg['type'] == 'kitti' or dataset_cfg['type'] == 'dair_kitti':
+        gt_f = np.loadtxt(os.path.join(gt_dir, f), dtype=str).reshape(-1, 15)
+        gt = {}
+        '''bbox'''
+        gt['bbox'] = gt_f[:, 4:8].astype(np.float32)
+
+        '''alpha'''
+        gt['alpha'] = gt_f[:, 3].astype(np.float32)
+
+        '''occluded'''
+        gt['occluded'] = gt_f[:, 2].astype(np.float32)
+
+        '''truncated'''
+        gt['truncated'] = gt_f[:, 1].astype(np.float32)
+
+        '''name'''
+        gt['name'] = gt_f[:, 0]
+
+        '''location'''
+        gt['location'] = gt_f[:, 11:14].astype(np.float32)
+
+        '''dimensions, convert hwl to lhw'''
+        gt['dimensions'] = gt_f[:, [10, 8, 9]].astype(np.float32)
+
+        '''rotation_y'''
+        gt['rotation_y'] = gt_f[:, 14].astype(np.float32)
+
+    elif dataset_cfg['type'] == 'dair':
+        dataset = DAIR(split=split, cfg=dataset_cfg)
+
+        id = int(get_id_from_path(f))
+        objects = dataset.get_label(id)
+
+        gt = convert_object3d_to_gt(objects)
+
+    return gt
+
+def get_dets(path):
+    det_f = np.loadtxt(path, dtype=str).reshape(-1, 16)
+    det = {}
+
+    '''bbox'''
+    det['bbox'] = det_f[:, 4:8].astype(np.float32)
+
+    '''alpha'''
+    det['alpha'] = det_f[:, 3].astype(np.float32)
+
+    '''occluded'''
+    det['occluded'] = det_f[:, 2].astype(np.float32)
+
+    '''truncated'''
+    det['truncated'] = det_f[:, 1].astype(np.float32)
+
+    '''name'''
+    det['name'] = det_f[:, 0]
+
+    '''location'''
+    det['location'] = det_f[:, 11:14].astype(np.float32)
+
+    '''dimensions, convert hwl to lhw'''
+    det['dimensions'] = det_f[:, [10, 8, 9]].astype(np.float32)
+
+    '''rotation_y'''
+    det['rotation_y'] = det_f[:, 14].astype(np.float32)
+
+    '''score'''
+    det['score'] = det_f[:, 15].astype(np.float32)
+
+    return det
