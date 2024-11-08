@@ -2,9 +2,9 @@ dataset:
   type: 'dair'
   data_dir: '/home/javier/datasets/DAIR-V2X/single-infrastructure-side'
   split_dir: '/home/javier/datasets/DAIR-V2X/single-infrastructure-side-mmdet'
-  label_dir: '/home/javier/datasets/DAIR-V2X/single-infrastructure-side-mmdet/training/label_2'
+  label_dir: '/home/javier/datasets/DAIR-V2X/single-infrastructure-side/label'
   eval_cls: ['Car','Pedestrian','Cyclist']
-  batch_size: 6
+  batch_size: 2 # 6
   num_workers: 16
   class_merging: False
   use_dontcare: False
