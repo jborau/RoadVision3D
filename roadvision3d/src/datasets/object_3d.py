@@ -323,6 +323,29 @@ class Calibration(object):
         # Return Calibration instance with all matrices in float32
         return cls(P2.astype(np.float32), R0_rect.astype(np.float32), V2C.astype(np.float32), C2V.astype(np.float32))
 
+    @classmethod
+    def from_rope3d_calib_file(cls, calib_file):
+        with open(calib_file) as f:
+            line = f.readline().strip()
+        
+        # Extract P2 matrix values
+        if line.startswith('P2:'):
+            matrix_values = line.split(':')[1].strip().split()
+            matrix_values = list(map(float, matrix_values))
+            P2 = np.array(matrix_values, dtype=np.float32).reshape(3, 4)
+        else:
+            raise ValueError("P2 matrix not found in the calibration file.")
+
+        # Initialize R0 and V2C as identity matrices in float32
+        R0 = np.eye(3, dtype=np.float32)  # 3x3 identity matrix for R0
+        V2C = np.eye(4, dtype=np.float32)[:3, :]  # 3x4 identity matrix for V2C
+
+        # Compute C2V as the inverse of V2C
+        C2V = cls.inverse_rigid_trans(cls, V2C)
+
+        # Ensure all matrices are in float32
+        return cls(P2.astype(np.float32), R0.astype(np.float32), V2C.astype(np.float32), C2V.astype(np.float32))
+
 
     def cart_to_hom(self, pts):
         """

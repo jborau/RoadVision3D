@@ -1,0 +1,60 @@
+dataset:
+  type: 'rope3d'
+  data_dir: '/home/javier/datasets/rope3d-backup'
+  split_dir: '/home/javier/datasets/rope3d-backup'
+  label_dir: '/home/javier/datasets/rope3d-backup/training/label_2'
+  eval_cls: ['car','pedestrian','cyclist']
+  batch_size: 1
+  num_workers: 16
+  class_merging: False
+  use_dontcare: False
+  use_3d_center: True
+  writelist: ['car','pedestrian','cyclist']
+  random_flip: 0.5 #0.5
+  random_crop: 0.5 #0.5
+  scale: 0.4
+  shift: 0.1
+  drop_last_val: True
+  cls_mean_size: [[1.76255119, 0.66068622, 0.84422524],
+                  [1.52563191, 1.6285674,  3.8831164 ],
+                  [1.73698127, 0.59706367, 1.76282397]]
+  cls_num: 3
+
+model:
+  type: 'MonoLSS'
+  backbone: 'dla34'
+  neck: 'DLAUp'
+  head: 'MonoLSSHead'
+  loss: 'LSS_Loss'
+  downsample: 4
+
+
+optimizer:
+  type: 'adam'
+  lr: 0.001
+  weight_decay: 0.00001
+
+lr_scheduler:
+  warmup: True  # 5 epoches, cosine warmup, init_lir=0.00001 in default
+  decay_rate: 0.1
+  # decay_list: [240, 360, 480]
+  decay_list: [90, 120]
+
+trainer:
+  max_epoch: 150
+  eval_start: 10
+  eval_frequency: 10 # evaluation interval (in epoch)
+  save_frequency: 50 # checkpoint save interval (in epoch)
+  disp_frequency: 10 # display interval (in batch)
+  log_dir: 'work_dirs/MonoLSS_rope3d/logs/'
+  out_dir: 'work_dirs/MonoLSS_rope3d/output/'
+  # resume_model: ''
+
+tester:
+  threshold: 0.2  # confidence filter
+  top_k: 50  # max number of boxes
+  out_dir: 'work_dirs/MonoLSS_rope3d/testset_out'
+  resume_model: '/home/javier/pytorch/RoadVision3D/work_dirs/VEHITS/MonoLSS_dair_GOOD/logs/checkpoints/checkpoint_epoch_150.pth' # pre-trained model path
+
+
+
