@@ -25,13 +25,11 @@ from roadvision3d.src.datasets.kitti_utils import Object3d
 class DAIR(data.Dataset):
     def __init__(self, split, cfg):
         # basic configuration
-        self.num_classes = 3
-        self.max_objs = 500
-        self.class_name = ['Pedestrian', 'Car', 'Cyclist']
-        self.cls2id = {'Pedestrian': 0, 'Car': 1, 'Cyclist': 2}
-        # self.resolution = np.array([1280, 384])  # W * H
-        # self.resolution = np.array([1920, 1080])  # W * H
-        self.resolution = np.array([1920, 1088])  # work with dla-34
+        self.num_classes = cfg['cls_num']
+        self.max_objs = cfg['max_objs']
+        self.class_name = cfg['eval_cls']
+        self.cls2id = {cls: idx for idx, cls in enumerate(self.class_name)}
+        self.resolution = np.array(cfg['resolution'])  # work with dla-34
 
         print('Resolution init:', self.resolution)
         self.use_3d_center = cfg['use_3d_center']
@@ -40,15 +38,9 @@ class DAIR(data.Dataset):
             self.writelist.extend(['Van', 'Truck'])
         if cfg['use_dontcare']:
             self.writelist.extend(['DontCare'])
-        '''    
-        ['Car': np.array([3.88311640418,1.62856739989,1.52563191462]),
-         'Pedestrian': np.array([0.84422524,0.66068622,1.76255119]),
-         'Cyclist': np.array([1.76282397,0.59706367,1.73698127])] 
-        ''' 
-        ##l,w,h
-        self.cls_mean_size = np.array([[1.76255119    ,0.66068622   , 0.84422524   ],
-                                       [1.52563191462 ,1.62856739989, 3.88311640418],
-                                       [1.73698127    ,0.59706367   , 1.76282397   ]])                              
+
+        # Load mean size for each class
+        self.cls_mean_size = np.array(cfg['cls_mean_size'])                              
                               
         # data split loading
         assert split in ['train', 'val', 'trainval', 'test']
@@ -71,11 +63,11 @@ class DAIR(data.Dataset):
         self.shift = cfg['shift']
 
         # statistics
-        self.mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-        self.std  = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+        self.mean = np.array(cfg['mean'], dtype=np.float32)
+        self.std  = np.array(cfg['std'], dtype=np.float32)
 
         # others
-        self.downsample = 4
+        self.downsample = cfg['downsample']
 
     def get_image(self, idx):
         img_file = os.path.join(self.image_dir, '%06d.jpg' % idx)
