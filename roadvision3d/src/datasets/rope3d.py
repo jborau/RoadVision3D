@@ -44,13 +44,9 @@ class Rope3D(data.Dataset):
         # Load mean size for each class
         self.cls_mean_size = np.array(cfg['cls_mean_size'])                                
                               
-        # data split loading
         assert split in ['train', 'val', 'trainval', 'test']
         self.split = split
-        if self.split == 'train' or self.split == 'trainval':
-            split_dir = os.path.join(cfg['split_dir'], 'training/' + 'train.txt')
-        elif self.split == 'val' or self.split == 'test':
-            split_dir = os.path.join(cfg['split_dir'], 'validation/' + 'val.txt')
+        split_dir = os.path.join(cfg['split_dir'], split + '.txt')
 
         self.idx_list = [x.strip() for x in open(split_dir).readlines()]
 

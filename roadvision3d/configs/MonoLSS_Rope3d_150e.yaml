@@ -1,10 +1,10 @@
 dataset:
   type: 'rope3d'
   data_dir: '/home/javier/datasets/rope3d-backup'
-  split_dir: '/home/javier/datasets/rope3d-backup'
+  split_dir: '/home/javier/pytorch/rope3d_splits'
   label_dir: '/home/javier/datasets/rope3d-backup/training/label_2'
   eval_cls: ['car','pedestrian','cyclist']
-  batch_size: 1
+  batch_size: 3
   num_workers: 16
   class_merging: False
   use_dontcare: False
