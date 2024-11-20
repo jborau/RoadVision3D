@@ -3,7 +3,7 @@ dataset:
   data_dir: '/home/javier/datasets/DAIR-V2X/single-infrastructure-side-mmdet'
   label_dir: '/home/javier/datasets/DAIR-V2X/single-infrastructure-side-mmdet/training/label_2'
   eval_cls: ['Car','Pedestrian','Cyclist']
-  batch_size: 3 #6
+  batch_size: 6 #6
   num_workers: 16
   class_merging: False
   use_dontcare: False
@@ -46,10 +46,10 @@ lr_scheduler:
 
 trainer:
   max_epoch: 150
-  eval_start: 1
-  eval_frequency: 1 # evaluation interval (in epoch)
+  eval_start: 10
+  eval_frequency: 10 # evaluation interval (in epoch)
   save_frequency: 50 # checkpoint save interval (in epoch)
-  disp_frequency: 10 # display interval (in batch)
+  disp_frequency: 100 # display interval (in batch)
   log_dir: 'work_dirs/MonoLSS_DAIR_KITTI_150e/logs/'
   out_dir: 'work_dirs/MonoLSS_DAIR_KITTI_150e/output/'
   # resume_model: ''
@@ -58,7 +58,7 @@ tester:
   threshold: 0.2  # confidence filter
   top_k: 50  # max number of boxes
   out_dir: 'work_dirs/MonoLSS_DAIR_KITTI_150e/testset_out'
-  resume_model: '/home/javier/pytorch/RoadVision3D/work_dirs/VEHITS/MonoLSS_dair_GOOD/logs/checkpoints/checkpoint_epoch_150.pth' # pre-trained model path
+  resume_model: '' # pre-trained model path
 
 
 
