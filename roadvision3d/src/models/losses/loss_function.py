@@ -77,14 +77,15 @@ class LSS_Loss(nn.Module):
     def forward(self, preds, targets):
 
         if targets['mask_2d'].sum() == 0:
-            bbox2d_loss = 0
-            bbox3d_loss = 0
-            self.stat['offset2d_loss'] = 0
-            self.stat['size2d_loss'] = 0
-            self.stat['depth_loss'] = 0
-            self.stat['offset3d_loss'] = 0
-            self.stat['size3d_loss'] = 0
-            self.stat['heading_loss'] = 0
+            device = targets['mask_2d'].device  # Get the device of the tensor
+            bbox2d_loss = torch.tensor(0.0, device=device)
+            bbox3d_loss = torch.tensor(0.0, device=device)
+            self.stat['offset2d_loss'] = torch.tensor(0.0, device=device)
+            self.stat['size2d_loss'] = torch.tensor(0.0, device=device)
+            self.stat['depth_loss'] = torch.tensor(0.0, device=device)
+            self.stat['offset3d_loss'] = torch.tensor(0.0, device=device)
+            self.stat['size3d_loss'] = torch.tensor(0.0, device=device)
+            self.stat['heading_loss'] = torch.tensor(0.0, device=device)
         else:
             bbox2d_loss = self.compute_bbox2d_loss(preds, targets)
             bbox3d_loss = self.compute_bbox3d_loss(preds, targets)

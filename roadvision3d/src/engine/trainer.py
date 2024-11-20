@@ -198,7 +198,7 @@ class Trainer(object):
                 calibs = calibs.to(self.device) 
                 coord_ranges = coord_ranges.to(self.device)
     
-                info = {key: val.detach().cpu().numpy() for key, val in info.items()}
+                info = {key: (val.detach().cpu().numpy() if isinstance(val, torch.Tensor) else val) for key, val in info.items()}
                 info['calibs'] = [self.test_loader.dataset.get_calib(index)  for index in info['img_id']]
                 dets = self.model(inputs, calibs, coord_ranges=coord_ranges, mode='val', info=info) # , targets, self.epoch)
 
@@ -235,7 +235,14 @@ class Trainer(object):
         os.makedirs(output_dir, exist_ok=True)
 
         for img_id in results.keys():
-            out_path = os.path.join(output_dir, '{:06d}.txt'.format(img_id))
+            # Check for both normal int and numpy integer types
+            if isinstance(img_id, (int, np.integer)):
+                img_id = int(img_id)  # Convert to a normal Python int if it's a numpy integer
+                out_path = os.path.join(output_dir, '{:06d}.txt'.format(img_id))
+            else:
+                print('img id is txt')
+                out_path = os.path.join(output_dir, f'{img_id}.txt')
+        
             f = open(out_path, 'w')
             for i in range(len(results[img_id])):
                 class_name = self.class_name[int(results[img_id][i][0])]

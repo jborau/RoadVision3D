@@ -125,6 +125,35 @@ class Object3d(object):
         alpha, ry_cam = get_camera_3d_8points(obj_size, ry, pos_lidar, pos_cam, r_velo2cam, t_velo2cam)
 
         return cls(cls_type, alpha, box2d, h, w, l, pos_cam, ry_cam, trucation, occlusion, score)
+    
+    @classmethod
+    def from_RCooper_dair_json(cls, obj, calib):
+        cls_type = obj['type']
+        trucation = float(obj['truncated_state'])
+        occlusion = float(obj['occluded_state'])
+        alpha = 0
+        box2d = (0.0, 0.0, 0.0, 0.0)
+        h = float(obj['3d_dimensions']['h'])
+        w = float(obj['3d_dimensions']['w'])
+        l = float(obj['3d_dimensions']['l'])
+        pos_lidar = np.array([
+            float(obj['3d_location']['x']),
+            float(obj['3d_location']['y']),
+            float(obj['3d_location']['z']) - h / 2,  # Adjust for the height of the object
+            1.0  # This is already a float
+        ])
+        ry = float(obj['rotation'])
+
+        score = 0
+        # Transform position to camera coordinates
+        pos_cam = calib.V2C @ pos_lidar  # Shape: (3,)
+
+        obj_size = (h, w, l)
+        r_velo2cam = calib.V2C[:3, :3]  
+        t_velo2cam = calib.V2C[:3, 3]
+        alpha, ry_cam = get_camera_3d_8points(obj_size, ry, pos_lidar, pos_cam, r_velo2cam, t_velo2cam)
+
+        return cls(cls_type, alpha, box2d, h, w, l, pos_cam, ry_cam, trucation, occlusion, score)
 
     def get_obj_level(self):
         height = float(self.box2d[3]) - float(self.box2d[1]) + 1
@@ -345,6 +374,40 @@ class Calibration(object):
 
         # Ensure all matrices are in float32
         return cls(P2.astype(np.float32), R0.astype(np.float32), V2C.astype(np.float32), C2V.astype(np.float32))
+    
+    @classmethod
+    def from_rcooper_calib_file(cls, calib_file, cam_id="cam_0"):
+        # Load the calibration file
+        with open(calib_file, 'r') as f:
+            calib_data = json.load(f)
+        
+        # Extract camera calibration data for the specified camera
+        camera_data = calib_data[cam_id]
+        
+        # Camera intrinsic matrix
+        K = np.array(camera_data['intrinsic'], dtype=np.float32).reshape(3, 3)
+        P2 = np.hstack((K, np.zeros((3, 1), dtype=np.float32)))  # 3×4 matrix in float32
+        
+        # Assume images are rectified, so R0_rect is an identity matrix
+        R0_rect = np.eye(3, dtype=np.float32)
+        
+        # Extract the extrinsic matrix (lidar-to-camera transformation)
+        extrinsic = np.array(camera_data['extrinsic'], dtype=np.float32)
+        
+        # The rotation and translation components from lidar to camera
+        R_lidar_to_cam = extrinsic[:3, :3]
+        T_lidar_to_cam = extrinsic[:3, 3].reshape(3, 1)
+        
+        # Construct V2C as a 3x4 matrix
+        V2C = np.hstack((R_lidar_to_cam, T_lidar_to_cam))  # 3×4 in float32
+        
+        # Compute the inverse transformation C2V (camera to lidar)
+        R_C2V = R_lidar_to_cam.T
+        T_C2V = -R_C2V @ T_lidar_to_cam
+        C2V = np.hstack((R_C2V, T_C2V))  # 3×4 in float32
+        
+        # Return an instance of Calibration with all matrices
+        return cls(P2.astype(np.float32), R0_rect.astype(np.float32), V2C.astype(np.float32), C2V.astype(np.float32))
 
 
     def cart_to_hom(self, pts):

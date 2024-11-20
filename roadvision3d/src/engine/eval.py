@@ -371,7 +371,7 @@ def get_thresholds(scores: np.ndarray, num_gt, num_sample_pts=41):
 def clean_data(gt_anno, dt_anno, current_class, difficulty):
     CLASS_NAMES = [
         'car', 'pedestrian', 'cyclist', 'van', 'person_sitting', 'car',
-        'tractor', 'trailer'
+        'tractor', 'trailer', 'pedestrian', 'cyclist',
     ]
     MIN_HEIGHT = [40, 25, 25]
     MAX_OCCLUSION = [0, 1, 2]
@@ -1084,16 +1084,16 @@ def get_official_eval_result(gt_annos,
         gt_annos and dt_annos must contains following keys:
         [bbox, location, dimensions, rotation_y, score]
     """
-    overlap_mod = np.array([[0.7, 0.5, 0.5, 0.7, 0.5, 0.7, 0.7, 0.7],
-                            [0.7, 0.5, 0.5, 0.7, 0.5, 0.7, 0.7, 0.7],
-                            [0.7, 0.5, 0.5, 0.7, 0.5, 0.7, 0.7, 0.7]])
-    overlap_easy = np.array([[0.7, 0.5, 0.5, 0.7, 0.5, 0.5, 0.5, 0.5],
-                             [0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.5],
-                             [0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.5]])
+    overlap_mod = np.array([[0.7, 0.5, 0.5, 0.7, 0.5, 0.7, 0.7, 0.7, 0.5, 0.5],
+                            [0.7, 0.5, 0.5, 0.7, 0.5, 0.7, 0.7, 0.7, 0.5, 0.5],
+                            [0.7, 0.5, 0.5, 0.7, 0.5, 0.7, 0.7, 0.7, 0.5, 0.5]])
+    overlap_easy = np.array([[0.7, 0.5, 0.5, 0.7, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+                             [0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.5, 0.25, 0.25],
+                             [0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.5, 0.25, 0.25]])
     # min_overlaps = np.stack([overlap_mod, overlap_easy], axis=0)  # [2, 3, 5]
-    overlap_easy2 = np.array([[0.7, 0.5, 0.5, 0.7, 0.5, 0.5, 0.5, 0.5],
-                              [0.3, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.5],
-                              [0.3, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.5]])
+    overlap_easy2 = np.array([[0.7, 0.5, 0.5, 0.7, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+                              [0.3, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.5, 0.25, 0.25],
+                              [0.3, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.5, 0.25, 0.25]])
     min_overlaps = np.stack([overlap_mod, overlap_easy, overlap_easy2], axis=0)
     class_to_name = {
         0: 'Car',
@@ -1104,6 +1104,8 @@ def get_official_eval_result(gt_annos,
         5: 'car',
         6: 'tractor',
         7: 'trailer',
+        8: 'pedestrian',
+        9: 'cyclist',
     }
     name_to_class = {v: n for n, v in class_to_name.items()}
     if not isinstance(current_classes, (list, tuple)):
@@ -1384,7 +1386,7 @@ def convert_object3d_to_gt(objects):
 
 
 def get_gt(gt_dir, f, dataset_cfg, split):
-    if dataset_cfg['type'] == 'kitti' or dataset_cfg['type'] == 'dair_kitti':
+    if dataset_cfg['type'] == 'kitti' or dataset_cfg['type'] == 'dair_kitti' or dataset_cfg['type'] == 'rope3d':
         gt_f = np.loadtxt(os.path.join(gt_dir, f), dtype=str).reshape(-1, 15)
         gt = {}
         '''bbox'''

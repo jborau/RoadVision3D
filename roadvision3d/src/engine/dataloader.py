@@ -4,6 +4,7 @@ from roadvision3d.src.datasets.kitti import KITTI
 from roadvision3d.src.datasets.dair_kitti import DAIR_KITTI
 from roadvision3d.src.datasets.dair import DAIR
 from roadvision3d.src.datasets.rope3d import Rope3D
+from roadvision3d.src.datasets.RCooper_DAIR import RCooper_DAIR
 
 
 
@@ -100,6 +101,31 @@ def build_dataloader(cfg):
                                  pin_memory=True,
                                  drop_last=cfg['drop_last_val'])
         test_set = Rope3D(split='test', cfg=cfg)
+        test_loader = DataLoader(dataset=test_set,
+                                 batch_size=cfg['batch_size'],
+                                 num_workers=cfg['num_workers'],
+                                 shuffle=False,
+                                 pin_memory=True,
+                                 drop_last=False)
+        return train_loader, val_loader, test_loader
+    
+        # --------------  build RCooper-DAIR dataset ----------------
+    if cfg['type'] == 'rcooper_dair':
+        train_set = RCooper_DAIR(split='train', cfg=cfg)
+        train_loader = DataLoader(dataset=train_set,
+                                  batch_size=cfg['batch_size'],
+                                  num_workers=cfg['num_workers'],
+                                  shuffle=True,
+                                  pin_memory=True,
+                                  drop_last=True)
+        val_set = RCooper_DAIR(split='val', cfg=cfg)
+        val_loader = DataLoader(dataset=val_set,
+                                 batch_size=cfg['batch_size'],
+                                 num_workers=cfg['num_workers'],
+                                 shuffle=False,
+                                 pin_memory=True,
+                                 drop_last=cfg['drop_last_val'])
+        test_set = RCooper_DAIR(split='test', cfg=cfg)
         test_loader = DataLoader(dataset=test_set,
                                  batch_size=cfg['batch_size'],
                                  num_workers=cfg['num_workers'],
