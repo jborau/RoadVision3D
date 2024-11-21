@@ -10,19 +10,17 @@ from roadvision3d.src.datasets.utils import angle2class
 from roadvision3d.src.datasets.utils import gaussian_radius
 from roadvision3d.src.datasets.utils import draw_umich_gaussian
 from roadvision3d.src.datasets.utils import get_angle_from_box3d,check_range
-from roadvision3d.src.datasets.kitti_utils import get_objects_from_label
 from roadvision3d.src.datasets.object_3d import Calibration
 from roadvision3d.src.datasets.object_3d import get_affine_transform
 from roadvision3d.src.datasets.object_3d import affine_transform
 from roadvision3d.src.datasets.object_3d import compute_box_3d
-from roadvision3d.src.datasets.kitti_utils import get_objects_from_label
 
 
 
 import cv2 as cv
 import torchvision.ops.roi_align as roi_align
 import math
-from roadvision3d.src.datasets.kitti_utils import Object3d
+from roadvision3d.src.datasets.object_3d import Object3d
 
 class Rope3D(data.Dataset):
     def __init__(self, split, cfg):
@@ -393,3 +391,10 @@ class Rope3D(data.Dataset):
                 'bbox_downsample_ratio': img_size/features_size}
 
         return inputs, calib.P2, coord_range, targets, info
+    
+
+def get_objects_from_label(label_file):
+    with open(label_file, 'r') as f:
+        lines = f.readlines()
+    objects = [Object3d.from_kitti_line(line) for line in lines]
+    return objects
