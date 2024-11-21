@@ -3,24 +3,6 @@ import cv2
 import json
 import math
 
-
-# def get_ry_cam(ry_lidar, calib):
-#     Ry_lidar = np.array([
-#             [np.cos(ry_lidar), 0, np.sin(ry_lidar)],
-#             [0, 1, 0],
-#             [-np.sin(ry_lidar), 0, np.cos(ry_lidar)]
-#         ])
-    
-#     R_v2c = calib.V2C[:, :3]  # Extract rotation matrix
-
-#     # Transform the rotation matrix to camera coordinates
-#     R_y_cam = R_v2c @ Ry_lidar
-
-#     # Compute the rotation angle around Y-axis in camera coordinates
-#     ry_cam = np.arctan2(R_y_cam[2, 0], R_y_cam[0, 0]) # + np.pi / 2
-
-#     return ry_cam
-
 def normalize_angle(angle):
     # make angle in range [-0.5pi, 1.5pi]
     alpha_tan = np.tan(angle)
@@ -608,11 +590,6 @@ class Calibration(object):
         new_calib_matrix[3,:] = new_calib[3:6]
         new_calib_matrix[-1,-1] = self.P2[-1,-1]
         return new_calib_matrix.T
-        #return new_calib_matrix.T       
-        #print('{}-->{}'.format(ori_size,tar_size))
-        #print(new_calib_matrix.T)
-        #print(np.abs(p3ds[:,:2] - self.img_to_rect(p2ds[:,0:1],p2ds[:,1:2],p2ds[:,2:3])[:,:2]).max())
-        #assert(np.abs(p3ds[:,:2] - self.img_to_rect(p2ds[:,0:1],p2ds[:,1:2],p2ds[:,2:3])[:,:2]).max()<1e-10)
 
 
 ##### affine transform #####
