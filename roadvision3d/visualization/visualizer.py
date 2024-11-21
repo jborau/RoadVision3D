@@ -65,10 +65,7 @@ def draw_3d_bbox_on_image(image, bbox, calib, camera_pitch):
 def draw_3d_bboxes(image, labels, calib, pitch):
     for label in labels:
         image = draw_3d_bbox_on_image(image, label, calib, pitch)
-    #     print(f"  Size 3D (h, w, l): {label.h, label.w, label.l}")
-    #     print(f"  Position: {label.pos}")
-    #     print(f"  Rotation Y (Yaw): {label.ry}")
-    # print(calib.P2)
+
     # Display the image
     plt.imshow(image)
     plt.axis('off')  # Turn off axis numbers and ticks
