@@ -240,7 +240,6 @@ class Trainer(object):
                 img_id = int(img_id)  # Convert to a normal Python int if it's a numpy integer
                 out_path = os.path.join(output_dir, '{:06d}.txt'.format(img_id))
             else:
-                print('img id is txt')
                 out_path = os.path.join(output_dir, f'{img_id}.txt')
         
             f = open(out_path, 'w')
