@@ -73,10 +73,6 @@ class Trainer(object):
             ei_loss = self.train_one_epoch(loss_weights)
             self.epoch += 1
 
-            # Log training losses to wandb
-            if self.wandb_logger:
-                self.wandb_logger.log_metrics({f"train_loss/{k}": v for k, v in ei_loss.items()})
-            
             # update learning rate
             if self.warmup_lr_scheduler is not None and epoch < 5:
                 self.warmup_lr_scheduler.step()
@@ -90,8 +86,20 @@ class Trainer(object):
                 self.logger.log_val_results(results, ap_mode = 40)
 
                 # Log evaluation results to wandb
+                # Log evaluation results to wandb
                 if self.wandb_logger:
-                    self.wandb_logger.log_metrics({f"eval/{k}": v for k, v in results.items()})
+                    flat_results = {}
+                    for cls, metrics in results.items():
+                        for metric, values in metrics.items():
+                            # Assume values are a list corresponding to [easy, moderate, hard]
+                            flat_results[f"eval/{cls}_{metric}_easy"] = values[0]  # Easy level
+                            flat_results[f"eval/{cls}_{metric}_moderate"] = values[1]  # Moderate level
+                            flat_results[f"eval/{cls}_{metric}_hard"] = values[2]  # Hard level
+                    flat_results["epoch"] = self.epoch  # Add epoch explicitly for graphing
+
+                    # Log flattened results
+                    self.wandb_logger.log_metrics(flat_results)
+
 
 
             if ((self.epoch % self.cfg_train['save_frequency']) == 0
@@ -196,9 +204,34 @@ class Trainer(object):
             # display statistics in terminal
             if trained_batch % self.cfg_train['disp_frequency'] == 0:
                 self.logger.log_iter(trained_batch, len(self.train_loader), disp_dict, self.cfg_train['disp_frequency'])
+
+            # Log batch-level metrics to wandb
+            if self.wandb_logger:
+                self.wandb_logger.log_metrics({
+                    f"batch/{key}": loss_terms[key].item() for key in loss_terms
+                })
+                self.wandb_logger.log_metrics({"batch/total_loss": total_loss.item(), "batch_idx": batch_idx})
+
                 
         for key in stat_dict.keys():
             stat_dict[key] /= trained_batch
+        
+        # Log epoch-level metrics to wandb
+        if self.wandb_logger:
+            # Log individual loss terms with explicit epoch
+            for key in stat_dict:
+                self.wandb_logger.log_metrics({
+                    f"epoch/{key}": stat_dict[key].item(),
+                    "epoch": self.epoch + 1 # Explicitly log the epoch
+                })
+
+            # Log the total loss with explicit epoch
+            total_loss = sum(stat_dict.values()).item()
+            self.wandb_logger.log_metrics({
+                "epoch/total_loss": total_loss,
+                "epoch": self.epoch + 1  # Explicitly log the epoch
+            })
+
                             
         return stat_dict    
     def eval_one_epoch(self):
