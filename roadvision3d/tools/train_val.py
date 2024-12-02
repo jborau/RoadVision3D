@@ -12,7 +12,7 @@ from roadvision3d.src.engine.trainer import Trainer
 from roadvision3d.src.engine.optimizer import build_optimizer
 from roadvision3d.src.engine.scheduler import build_lr_scheduler
 from roadvision3d.src.engine.logger import Logger
-
+from roadvision3d.src.engine.wandb_logger import WandbLogger
 
 # TODO: update this
 parser = argparse.ArgumentParser(description='implementation of MonoLSS')
@@ -29,15 +29,14 @@ def main():
     os.makedirs(cfg['trainer']['log_dir'], exist_ok=True)
     logger = Logger(cfg['trainer']['log_dir'], 'train.log', cfg['trainer']['max_epoch'])
 
-    import shutil
-    # TODO: Update this
-    # if not args.evaluate:
-    #     if not args.test:
-    #         if os.path.exists(os.path.join(cfg['trainer']['log_dir'], 'lib/')):
-    #             shutil.rmtree(os.path.join(cfg['trainer']['log_dir'], 'lib/'))
-    #     if not args.test:
-    #         shutil.copytree('./lib', os.path.join(cfg['trainer']['log_dir'], 'lib/'))
-        
+    # Initialize wandb
+    wandb_logger = WandbLogger(
+        project="RoadVision3D",
+        config=cfg,
+        name=cfg['wandb']['name'],  # Optional: Customize name
+        notes=cfg['wandb']['notes'],  # Optional: Add any notes
+        tags=["3D", "object-detection"]  # Optional: Add tags
+    )
     
     #  build dataloader
     print('Building dataloader...')
@@ -78,7 +77,8 @@ def main():
                       test_loader=val_loader,
                       lr_scheduler=lr_scheduler,
                       warmup_lr_scheduler=warmup_lr_scheduler,
-                      logger=logger)
+                      logger=logger,
+                      wandb_logger=wandb_logger)
     print('Begin training...')
     trainer.train()
 

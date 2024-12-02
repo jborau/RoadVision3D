@@ -60,5 +60,7 @@ tester:
   out_dir: './MonoLSS_KITTI_150e/testset_out'
   resume_model: '/home/javier/pytorch/RoadVision3D/work_dirs/MonoLSS_KITTI_150e/logs/checkpoints/checkpoint_epoch_150.pth' # pre-trained model path
 
-
+wandb:
+  name: "MonoLSS_KITTI_150e"
+  notes: "MonoLSS trained on KITTI over 150e"
 

@@ -24,7 +24,8 @@ class Trainer(object):
                  test_loader,
                  lr_scheduler,
                  warmup_lr_scheduler,
-                 logger):
+                 logger,
+                 wandb_logger=None):
         self.cfg = cfg
         self.cfg_train = cfg['trainer']
         self.cfg_test = cfg['tester']
@@ -35,6 +36,7 @@ class Trainer(object):
         self.lr_scheduler = lr_scheduler
         self.warmup_lr_scheduler = warmup_lr_scheduler
         self.logger = logger
+        self.wandb_logger = wandb_logger
         self.epoch = 0
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.class_name = test_loader.dataset.class_name
@@ -53,10 +55,13 @@ class Trainer(object):
         for epoch in range(start_epoch, self.cfg_train['max_epoch']):
             # train one epoch
             self.logger.log_train_epoch(epoch)
-            if self.warmup_lr_scheduler is not None and epoch < 5:
-                self.logger.log_lr(self.warmup_lr_scheduler.get_lr()[0])
-            else:
-                self.logger.log_lr(self.lr_scheduler.get_lr()[0])
+            current_lr = (self.warmup_lr_scheduler.get_lr()[0] if self.warmup_lr_scheduler is not None and epoch < 5
+                          else self.lr_scheduler.get_lr()[0])
+            self.logger.log_lr(current_lr)
+
+            # Log learning rate to wandb
+            if self.wandb_logger:
+                self.wandb_logger.log_metrics({"learning_rate": current_lr, "epoch": epoch})
 
             # reset numpy seed.
             # ref: https://github.com/pytorch/pytorch/issues/5059
@@ -67,6 +72,10 @@ class Trainer(object):
 
             ei_loss = self.train_one_epoch(loss_weights)
             self.epoch += 1
+
+            # Log training losses to wandb
+            if self.wandb_logger:
+                self.wandb_logger.log_metrics({f"train_loss/{k}": v for k, v in ei_loss.items()})
             
             # update learning rate
             if self.warmup_lr_scheduler is not None and epoch < 5:
@@ -80,6 +89,10 @@ class Trainer(object):
                 results = self.eval_one_epoch()
                 self.logger.log_val_results(results, ap_mode = 40)
 
+                # Log evaluation results to wandb
+                if self.wandb_logger:
+                    self.wandb_logger.log_metrics({f"eval/{k}": v for k, v in results.items()})
+
 
             if ((self.epoch % self.cfg_train['save_frequency']) == 0
                 and self.epoch >= self.cfg_train['eval_start']):
@@ -87,7 +100,13 @@ class Trainer(object):
                 ckpt_name = os.path.join(self.cfg_train['log_dir']+'/checkpoints', 'checkpoint_epoch_%d' % self.epoch)
                 save_checkpoint(get_checkpoint_state(self.model, self.optimizer, self.epoch), ckpt_name, self.logger)
 
+                # Log model checkpoint to wandb
+                if self.wandb_logger:
+                    self.wandb_logger.log_model(ckpt_name)
+
         self.logger.finish_training()
+        if self.wandb_logger:
+            self.wandb_logger.finish()
         return None
     
     def compute_e0_loss(self):

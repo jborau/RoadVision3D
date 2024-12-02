@@ -8,3 +8,4 @@ from .eval import *
 from .optimizer import build_optimizer
 from .scheduler import build_lr_scheduler
 from .logger import Logger
+from .wandb_logger import WandbLogger

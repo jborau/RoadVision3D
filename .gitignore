@@ -2,7 +2,7 @@ MonoLSS/
 work_dirs/
 work_dirs_old/
 roadvision3d/data/
-
+wandb/
 
 
 # Byte-compiled / optimized / DLL files
