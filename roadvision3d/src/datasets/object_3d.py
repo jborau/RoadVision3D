@@ -391,6 +391,21 @@ class Calibration(object):
         # Return an instance of Calibration with all matrices
         return cls(P2.astype(np.float32), R0_rect.astype(np.float32), V2C.astype(np.float32), C2V.astype(np.float32))
 
+    @classmethod
+    def from_intrinsic_matrix(cls, matrix):
+        
+        P2 = np.hstack((matrix, np.zeros((3, 1))))
+
+        # Initialize R0 and V2C as identity matrices in float32
+        R0 = np.eye(3, dtype=np.float32)  # 3x3 identity matrix for R0
+        V2C = np.eye(4, dtype=np.float32)[:3, :]  # 3x4 identity matrix for V2C
+
+        # Compute C2V as the inverse of V2C
+        C2V = cls.inverse_rigid_trans(cls, V2C)
+
+        # Ensure all matrices are in float32
+        return cls(P2.astype(np.float32), R0.astype(np.float32), V2C.astype(np.float32), C2V.astype(np.float32))
+    
 
     def cart_to_hom(self, pts):
         """
