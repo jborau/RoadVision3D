@@ -1,7 +1,7 @@
 dataset:
   type: 'rope3d'
   data_dir: '/home/javier/datasets/rope3d-backup'
-  split_dir: '/home/javier/pytorch/rope3d_splits'
+  split_dir: '/home/javier/pytorch/splits/rope3d_splits'
   label_dir: '/home/javier/datasets/rope3d-backup/training/label_2'
   eval_cls: ['car','pedestrian','cyclist']
   batch_size: 14
@@ -61,5 +61,9 @@ tester:
   out_dir: 'work_dirs/MonoLSS_Rope3d_150e/testset_out'
   resume_model: '' # pre-trained model path
 
+
+wandb:
+  name: "MonoLSS_Rope3D_150e"
+  notes: "MonoLSS trained on Rope3D over 100e"
 
 
