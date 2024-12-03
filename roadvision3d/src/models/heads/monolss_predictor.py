@@ -37,7 +37,7 @@ class MonoLSSPredictor(nn.Module):
         # initialize the head of pipeline, according to heads setting.
         self.heatmap = nn.Sequential(nn.Conv2d(channels[self.first_level], self.head_conv, kernel_size=3, padding=1, bias=True),
                                      nn.ReLU(inplace=True),
-                                     nn.Conv2d(self.head_conv, 3, kernel_size=1, stride=1, padding=0, bias=True))
+                                     nn.Conv2d(self.head_conv, self.cls_num, kernel_size=1, stride=1, padding=0, bias=True))
         self.offset_2d = nn.Sequential(nn.Conv2d(channels[self.first_level], self.head_conv, kernel_size=3, padding=1, bias=True),
                                      nn.ReLU(inplace=True),
                                      nn.Conv2d(self.head_conv, 2, kernel_size=1, stride=1, padding=0, bias=True))
