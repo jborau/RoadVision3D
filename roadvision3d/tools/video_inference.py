@@ -123,16 +123,46 @@ def inference_video(video, calib, model, cfg, device='cuda:0'):
         print(f"Processed frame {i + 1}/{video.shape[0]}.")
     return predictions
 
-def create_results_frames(frames, results, calib):
+def create_results_frames(frames, results, calib, cfg):
+    """
+    Create frames with 2D and 3D bounding boxes and resize them if necessary.
+
+    Parameters:
+    - frames (list of torch.Tensor): Video frames.
+    - results (list): Results of the inference for each frame.
+    - calib: Calibration object.
+    - cfg (dict): Configuration dictionary containing dataset resolution.
+
+    Returns:
+    - tuple: Lists of PIL images with 2D and 3D bounding boxes.
+    """
     visualizer = Visualizer(calib=calib, pitch=0.22)
     results_2d_video = []
     results_3d_video = []
 
+    target_resolution = tuple(cfg['dataset']['resolution'])  # Expected resolution as (width, height)
+    # Check resolution of the first frame to decide if resizing is needed
+    first_frame_numpy = frames[0].cpu().numpy()
+    first_frame_pil = Image.fromarray(first_frame_numpy)
+
+    if first_frame_pil.size != target_resolution:
+        print(f"Warning: Image resolution {first_frame_pil.size} does not match target resolution {target_resolution}. All images will be rescaled.")
+
+
+
     for frame, result in zip(frames, results):
         frame_numpy = frame.cpu().numpy()
         pil_img = Image.fromarray(frame_numpy)
+
+        # Check and resize the image if necessary
+        if pil_img.size != target_resolution:
+            pil_img = pil_img.resize(target_resolution, Image.Resampling.LANCZOS)
+
+        # Draw 2D and 3D bounding boxes
         image_with_2d = visualizer.draw_2d_bboxes(pil_img, result, color='red', width=3, display=False)
         image_with_3d = visualizer.draw_3d_bboxes(pil_img, result, color='blue', color_front='green', width=4, display=False)
+
+        # Append the processed images
         results_2d_video.append(image_with_2d)
         results_3d_video.append(image_with_3d)
 
@@ -252,7 +282,7 @@ def main():
     results_video = inference_video(frames, calib, model, cfg, device=device)
 
     # Create result frames
-    result_frames_2d, result_frames_3d = create_results_frames(frames, results_video, calib)
+    result_frames_2d, result_frames_3d = create_results_frames(frames, results_video, calib, cfg)
 
     # Save output videos
     output_video_path_2d = os.path.join(args.output_dir, 'video_2d.mp4')

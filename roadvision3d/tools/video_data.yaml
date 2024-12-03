@@ -1,6 +1,6 @@
-video_path: /home/javier/pytorch/RoadVision3D/roadvision3d/data/delicias1_x1_30fps.mp4
+video_path: /home/javier/pytorch/RoadVision3D/roadvision3d/data/delicias5_x1_60fps.mp4
 cfg_path: /home/javier/pytorch/RoadVision3D/roadvision3d/configs/MonoLSS_Rope3d_150e.yaml
-checkpoint_path: /home/javier/pytorch/RoadVision3D/work_dirs/MonoLSS_Rope3d_150e/logs/checkpoints/checkpoint_epoch_100.pth
+checkpoint_path: /home/javier/pytorch/RoadVision3D/work_dirs/MonoLSS_Rope3d_150e_lowmetrics/logs/checkpoints/checkpoint_epoch_100.pth
 calib_path: /home/javier/pytorch/RoadVision3D/roadvision3d/data/iPhone_16_Pro_calib.pkl
-device: cuda:1
-output_dir: /home/javier/pytorch/RoadVision3D/roadvision3d/data/inference_results1_opencv
+device: cuda:0
+output_dir: /home/javier/pytorch/RoadVision3D/roadvision3d/data/inference_results5_rope3d
