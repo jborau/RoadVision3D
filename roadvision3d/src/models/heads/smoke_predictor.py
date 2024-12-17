@@ -85,6 +85,12 @@ class SMOKEPredictor(nn.Module):
         )
         _fill_fc_weights(self.regression_head)
 
+        # 2D BBOX MODULE
+        self.size_2d = nn.Sequential(nn.Conv2d(in_channels, head_conv, kernel_size=3, padding=1, bias=True),
+                                     nn.ReLU(inplace=True),
+                                     nn.Conv2d(head_conv, 2, kernel_size=1, stride=1, padding=0, bias=True))
+        _fill_fc_weights(self.size_2d)
+
     def forward(self, features):
         head_class = self.class_head(features)
         head_regression = self.regression_head(features)
@@ -97,7 +103,11 @@ class SMOKEPredictor(nn.Module):
 
         vector_ori = head_regression[:, self.ori_channel, ...].clone()
         head_regression[:, self.ori_channel, ...] = F.normalize(vector_ori)
-        return [heatmap_head, head_regression] 
+
+        # 2d head
+        size_2d_reg = self.size_2d(features)
+
+        return [heatmap_head, head_regression, size_2d_reg] 
 
 
 def get_channel_spec(reg_channels, name):

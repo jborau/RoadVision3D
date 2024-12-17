@@ -3,6 +3,7 @@ from torch.nn import functional as F
 
 from .smoke_coder import SMOKECoder
 from .focal_loss import focal_loss
+from roadvision3d.src.engine.decode_helper import _transpose_and_gather_feat
 # from smoke.layers.utils import select_point_of_interest
 
 
@@ -115,7 +116,7 @@ class SMOKELossComputation():
         #     return pred_box_3d
 
     def __call__(self, predictions, targets, calibs):
-        pred_heatmap, pred_regression = predictions[0], predictions[1]
+        pred_heatmap, pred_regression, pred_size_2d = predictions[0], predictions[1], predictions[2]
 
         # targets_heatmap, targets_regression, targets_variables \
         #     = self.prepare_targets(targets)
@@ -161,6 +162,10 @@ class SMOKELossComputation():
         #     orientation_target_valid[0].detach().cpu().numpy())
 
 
+        # SIZE_2D MODULE
+        size2d_input = extract_input_from_tensor(pred_size_2d, targets['indices'], targets['mask_2d'])
+        size2d_target = extract_target_from_tensor(targets['size_2d'], targets['mask_2d'])
+
         num_objs = valid_mask.sum()
         # Compute L1 loss
         if self.reg_loss == 'DisL1':
@@ -169,6 +174,8 @@ class SMOKELossComputation():
                 reg_loss_ori = F.l1_loss(orientation_pred_valid, orientation_target_valid) * self.loss_weight[1]
                 reg_loss_dim = F.l1_loss(dimension_pred_valid, dimension_target_valid) * self.loss_weight[1]
                 reg_loss_pos = F.l1_loss(position_pred_valid, position_target_valid) * self.loss_weight[1]
+                size2d_loss = F.l1_loss(size2d_input, size2d_target, reduction='mean')
+
 
             else:
                 reg_loss_ori = torch.tensor(0.0, device=self.device)
@@ -181,6 +188,7 @@ class SMOKELossComputation():
             'position_loss': reg_loss_pos,
             'dimension_loss': reg_loss_dim,
             'rotation_loss': reg_loss_ori,
+            'size_2d_loss': size2d_loss,
         }
 
         return self.stat
@@ -245,3 +253,14 @@ def select_point_of_interest(batch, indices, feature_maps):
     selected_features = feature_maps.gather(1, indices.long())
 
     return selected_features
+
+
+
+# SIZE_2D MODULE
+def extract_input_from_tensor(input, ind, mask):
+    input = _transpose_and_gather_feat(input, ind)  # B*C*H*W --> B*K*C
+    return input[mask]  # B*K*C --> M * C
+
+
+def extract_target_from_tensor(target, mask):
+    return target[mask]

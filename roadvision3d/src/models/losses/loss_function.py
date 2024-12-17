@@ -18,6 +18,7 @@ class Hierarchical_Task_Learning:
                                'position_loss':[],
                                'dimension_loss': [],
                                'rotation_loss':[],
+                               'size_2d_loss':[],
                            }
         else:
             self.loss_graph = {'seg_loss':[],

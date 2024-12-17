@@ -2,10 +2,10 @@ dataset:
   type: 'kitti'
   data_dir: '/home/javier/datasets/kitti'
   label_dir: '/home/javier/datasets/kitti/training/label_2'
-  # split_dir: '/home/javier/pytorch/splits/KITTI_reduced'
-  split_dir : '/home/javier/datasets/kitti/ImageSets'
+  split_dir: '/home/javier/pytorch/splits/KITTI_reduced'
+  # split_dir : '/home/javier/datasets/kitti/ImageSets'
   eval_cls: ['Car']
-  batch_size: 24
+  batch_size: 8
   num_workers: 16
   class_merging: False
   use_dontcare: False

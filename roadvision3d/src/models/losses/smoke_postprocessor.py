@@ -11,7 +11,7 @@ class PostProcessor:
         self.pred_2d = pred_2d
 
     def __call__(self, predictions, calibs, info, cls_mean_size):
-        pred_heatmap, pred_regression = predictions[0], predictions[1]
+        pred_heatmap, pred_regression, pred_size2d = predictions[0], predictions[1], predictions[2]
         batch_size = pred_heatmap.shape[0]
 
         # Apply Non-Maximum Suppression (NMS) to the heatmap
@@ -19,10 +19,18 @@ class PostProcessor:
 
         # Select top K predictions from the heatmap
         scores, indices, clses, ys, xs = self.select_topk(heatmap, K=self.max_detection)
+        print(indices.shape)
+        print(pred_size2d.shape)
 
         # Select regression outputs at points of interest
+        print(pred_regression.shape)
         pred_regression_pois = self.select_point_of_interest(batch_size, indices, pred_regression)
         pred_regression_pois = pred_regression_pois.view(-1, self.reg_head)
+        print(pred_regression_pois.shape)
+
+        pred_size2d = self.select_point_of_interest(batch_size, indices, pred_size2d)
+        print(pred_size2d.shape)
+
 
         # Decode the regression outputs
         pred_proj_points = torch.cat([xs.view(-1, 1), ys.view(-1, 1)], dim=1)
@@ -82,8 +90,10 @@ class PostProcessor:
                 cls_id = clses[i * self.max_detection + j].item()
 
                 # 2D bounding box decoding
-                x, y = xs[i * self.max_detection + j], ys[i * self.max_detection + j]
-                w, h = pred_proj_offsets[i * self.max_detection + j]
+                # x, y = xs[i * self.max_detection + j], ys[i * self.max_detection + j]
+                # w, h = pred_proj_offsets[i * self.max_detection + j]
+                x, y = pred_proj_points[i * self.max_detection + j][0] + pred_proj_offsets[i * self.max_detection + j][0], pred_proj_points[i * self.max_detection + j][1] + pred_proj_offsets[i * self.max_detection + j][0]
+                w, h = pred_size2d[i * self.max_detection + j]
 
                 bbox = [
                     (x - w / 2).item() * info['bbox_downsample_ratio'][i][0],
