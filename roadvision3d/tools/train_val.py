@@ -2,6 +2,8 @@ import os
 import argparse
 import yaml
 import logging
+import torch
+import gc
 
 import roadvision3d
 
@@ -19,11 +21,14 @@ parser = argparse.ArgumentParser(description='implementation of MonoLSS')
 parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
 parser.add_argument('-t', '--test', dest='test', action='store_true', help='evaluate model on test set')
 parser.add_argument('--config', type=str, default='/home/javier/pytorch/RoadVision3D/roadvision3d/configs/kitti.yaml')
+parser.add_argument('--device', type=str, default='cuda:0')
 # parser.add_argument('--config', type=str, default='/home/javi/Desktop/server/RoadVision3D/roadvision3d/configs/kitti.yaml')
 args = parser.parse_args()    
 
 def main():
     # load cfg
+    device = args.device
+    torch.cuda.set_device(device)
     assert (os.path.exists(args.config))
     cfg = yaml.load(open(args.config, 'r'), Loader=yaml.Loader)
     os.makedirs(cfg['trainer']['log_dir'], exist_ok=True)
@@ -36,26 +41,26 @@ def main():
         name=cfg['wandb']['name'],  # Optional: Customize name
         notes=cfg['wandb']['notes'],  # Optional: Add any notes
         tags=["3D", "object-detection"]  # Optional: Add tags
-    )
-    
+    )    
+
     #  build dataloader
     print('Building dataloader...')
     train_loader, val_loader, test_loader = build_dataloader(cfg['dataset'])
     print('dataloader done')
-
+    
     # build model
     print('Building model...')
-    model = build_model(cfg)
+    model = build_model(cfg, device)
     print('model done')
 
     # evaluation mode
     if args.evaluate:
-        tester = Tester(cfg['tester'], cfg['dataset'], model, val_loader, logger)
+        tester = Tester(cfg['tester'], cfg['dataset'], model, device, val_loader, logger)
         tester.test()
         return
 
     if args.test:
-        tester = Tester(cfg['tester'], cfg['dataset'], model, test_loader, logger)
+        tester = Tester(cfg['tester'], cfg['dataset'], model, device, test_loader, logger)
         tester.test()
         return
     
@@ -70,8 +75,10 @@ def main():
     print('scheduler done')
 
     print('Building trainer...')
+
     trainer = Trainer(cfg=cfg,
                       model=model,
+                      device=device,
                       optimizer=optimizer,
                       train_loader=train_loader,
                       test_loader=val_loader,

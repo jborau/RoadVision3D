@@ -14,13 +14,13 @@ from roadvision3d.src.engine.decode_helper import extract_dets_from_outputs
 from roadvision3d.src.engine.decode_helper import decode_detections
 
 class Tester(object):
-    def __init__(self, cfg_tester, cfg_dataset, model, data_loader, logger):
+    def __init__(self, cfg_tester, cfg_dataset, model, device, data_loader, logger):
         self.cfg = cfg_tester
         self.model = model
         self.data_loader = data_loader
         self.logger = logger
         self.class_name = data_loader.dataset.class_name
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(device if torch.cuda.is_available() else "cpu")
         self.label_dir = cfg_dataset['label_dir']
         self.eval_cls = cfg_dataset['eval_cls']
 

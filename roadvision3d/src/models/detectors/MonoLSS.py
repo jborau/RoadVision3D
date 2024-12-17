@@ -5,8 +5,9 @@ from roadvision3d.src.models.backbones.backbone import build_backbone, build_nec
 from roadvision3d.src.models.heads.head import build_heads
 
 class MonoLSS(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg, device):
         super(MonoLSS, self).__init__()
+        self.device = device
         self.backbone = build_backbone(cfg['model'])
 
         channels = self.backbone.channels
@@ -16,7 +17,7 @@ class MonoLSS(nn.Module):
 
         self.neck = build_neck(cfg['model'], channels[self.first_level:], scales_list=scales)
 
-        self.heads = build_heads(cfg, self.backbone.channels, self.first_level)
+        self.heads = build_heads(cfg, self.backbone.channels, self.first_level, device)
 
 
     def forward(self, input, calib, targets=None, coord_ranges=None, epoch=1, mode='train', info=None):

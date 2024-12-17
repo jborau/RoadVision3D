@@ -19,6 +19,7 @@ class Trainer(object):
     def __init__(self,
                  cfg,
                  model,
+                 device,
                  optimizer,
                  train_loader,
                  test_loader,
@@ -38,7 +39,7 @@ class Trainer(object):
         self.logger = logger
         self.wandb_logger = wandb_logger
         self.epoch = 0
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(device if torch.cuda.is_available() else "cpu")
         self.class_name = test_loader.dataset.class_name
         self.label_dir = cfg['dataset']['label_dir']
         self.eval_cls = cfg['dataset']['eval_cls']
@@ -102,8 +103,8 @@ class Trainer(object):
 
 
 
-            if ((self.epoch % self.cfg_train['save_frequency']) == 0
-                and self.epoch >= self.cfg_train['eval_start']):
+            if ((self.epoch % self.cfg_train['save_frequency']) == 0):
+                # and self.epoch >= self.cfg_train['eval_start']):
                 os.makedirs(self.cfg_train['log_dir']+'/checkpoints', exist_ok=True)
                 ckpt_name = os.path.join(self.cfg_train['log_dir']+'/checkpoints', 'checkpoint_epoch_%d' % self.epoch)
                 save_checkpoint(get_checkpoint_state(self.model, self.optimizer, self.epoch), ckpt_name, self.logger)
@@ -176,9 +177,10 @@ class Trainer(object):
 
             
             if loss_weights is not None:
-                total_loss = torch.zeros(1).cuda()
+                total_loss = torch.zeros(1, device=self.device)
                 for key in loss_weights.keys():
                     total_loss += loss_weights[key].detach()*loss_terms[key]
+
             total_loss.backward()
             self.optimizer.step()
 

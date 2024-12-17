@@ -209,10 +209,10 @@ def compute_heading_loss(input, mask, target_cls, target_reg):
     # regression loss
     input_reg = input[:, 12:24]
     target_reg = target_reg[mask]
-    cls_onehot = torch.zeros(target_cls.shape[0], 12).cuda().scatter_(dim=1, index=target_cls.view(-1, 1), value=1)
+    cls_onehot = torch.zeros(target_cls.shape[0], 12, device=target_cls.device).scatter_(
+        dim=1, index=target_cls.view(-1, 1), value=1)    
     input_reg = torch.sum(input_reg * cls_onehot, 1)
     reg_loss = F.l1_loss(input_reg, target_reg, reduction='mean')
-    
     return cls_loss + reg_loss    
 '''    
 
