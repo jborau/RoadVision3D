@@ -46,7 +46,7 @@ class Logger:
 
     def log_lr(self, lr):
         self.lr = lr
-        self.logger.info('Learning Rate: %f' % self.lr)
+        self.logger.info('Learning Rate: %.8f' % self.lr)
 
     def log_weights(self, loss_weights):
         log_str = 'Weights: '
