@@ -1,17 +1,18 @@
 dataset:
-  type: 'rope3d'
-  data_dir: '/home/javier/datasets/rope3d-backup'
-  split_dir: '/home/javier/pytorch/splits/rope3d_splits'
-  label_dir: '/home/javier/datasets/rope3d-backup/training/label_2'
-  eval_cls: ['car','pedestrian','cyclist']
+  type: 'dair'
+  data_dir: '/home/javier/datasets/DAIR-V2X/single-infrastructure-side'
+  split_dir: '/home/javier/datasets/DAIR-V2X/single-infrastructure-side-mmdet'
+  label_dir: '/home/javier/datasets/DAIR-V2X/single-infrastructure-side/label'
+  eval_cls: ['Car','Pedestrian','Cyclist']
   batch_size: 6
   num_workers: 16
   class_merging: False
   use_dontcare: False
   use_3d_center: True
-  writelist: ['car','pedestrian','cyclist']
-  random_flip: 0.5 #0.5
-  random_crop: 0.5 #0.5
+  writelist: ['Car','Pedestrian','Cyclist']
+  random_flip: 0.5
+  random_crop: 0.5
+  random_mix: 0.5
   scale: 0.4
   shift: 0.1
   drop_last_val: True
@@ -26,12 +27,14 @@ dataset:
   downsample: 4
 
 model:
-  type: 'MonoLSS'
+  type: 'SMOKE'
   backbone: 'dla34'
   neck: 'DLAUp'
-  head: 'MonoLSSHead'
-  loss: 'LSS_Loss'
+  head: 'SmokeHead'
+  loss: 'asfd'
   downsample: 4
+  loss_weight: [10., 5.]
+  depth_ref: [28.01, 16.32]
 
 
 optimizer:
@@ -43,27 +46,25 @@ lr_scheduler:
   warmup: True  # 5 epoches, cosine warmup, init_lir=0.00001 in default
   decay_rate: 0.1
   # decay_list: [240, 360, 480]
-  decay_list: [90, 120]
+  decay_list: [60, 90, 120]
 
 trainer:
   max_epoch: 150
   eval_start: 15
   eval_frequency: 15 # evaluation interval (in epoch)
   save_frequency: 50 # checkpoint save interval (in epoch)
-  disp_frequency: 100 # display interval (in batch)
-  log_dir: 'work_dirs/MonoLSS_Rope3d_150e/logs/'
-  out_dir: 'work_dirs/MonoLSS_Rope3d_150e/output/'
+  disp_frequency: 10 # display interval (in batch)
+  log_dir: 'work_dirs/SMOKE_DAIR_EXP/logs/'
+  out_dir: 'work_dirs/SMOKE_DAIR_EXP/output/'
   # resume_model: ''
 
 tester:
-  threshold: 0.2  # confidence filter
+  threshold: 0.1  # confidence filter
   top_k: 50  # max number of boxes
-  out_dir: 'work_dirs/MonoLSS_Rope3d_150e/testset_out'
-  resume_model: '' # pre-trained model path
+  out_dir: './KITTI_EXP/testset_out'
+  resume_model: '/home/javier/pytorch/RoadVision3D/work_dirs/KITTI_EXP/logs/checkpoints/checkpoint_epoch_150.pth' # pre-trained model path
 
 
 wandb:
-  name: "MonoLSS_Rope3D_150e"
-  notes: "MonoLSS trained on Rope3D over 100e"
-
-
+  name: "EXP_SMOKE_DAIR"
+  notes: "SMOKE EXP trained on DAIR over 150e"
