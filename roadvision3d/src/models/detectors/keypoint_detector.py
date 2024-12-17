@@ -13,7 +13,7 @@ class KeypointDetector(nn.Module):
     - heads
     '''
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, device):
         super(KeypointDetector, self).__init__()
         self.backbone = build_backbone(cfg['model'])
 
@@ -24,7 +24,7 @@ class KeypointDetector(nn.Module):
 
         self.neck = build_neck(cfg['model'], channels[self.first_level:], scales_list=scales)
 
-        self.heads = build_heads(cfg, self.backbone.channels, self.first_level)
+        self.heads = build_heads(cfg, self.backbone.channels, self.first_level, device)
 
 
     def forward(self, input, calib, targets=None, coord_ranges=None, epoch=1, K=50, mode='train', calib_tmp=None, info=None, cls_mean_size=None):
@@ -36,8 +36,6 @@ class KeypointDetector(nn.Module):
         Returns:
 
         """
-        if self.training and targets is None:
-            raise ValueError("In training mode, targets should be passed")
         feat = self.backbone(input)
         feat = self.neck(feat[self.first_level:])
         result, detector_losses = self.heads(feat, calib, targets, coord_ranges, epoch, mode=mode, calibs_tmp=calib_tmp, info=info, cls_mean_size=cls_mean_size)

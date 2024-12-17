@@ -47,65 +47,61 @@ class PostProcessor:
         )
 
         # Adjust Y-coordinate of the locations
-        pred_locations[:, 1] += pred_dimensions[:, 1] / 2
+        # pred_locations[:, 1] += pred_dimensions[:, 1] / 2
 
         pred_rotys, pred_alphas = self.smoke_coder.decode_orientation(
             pred_orientation,
             pred_locations
         )
 
-        # Prepare the final result tensor
-        clses = clses.view(-1, 1).float()
-        pred_alphas = pred_alphas.view(-1, 1)
-        pred_rotys = pred_rotys.view(-1, 1)
-        scores = scores.view(-1, 1)
-        pred_dimensions = pred_dimensions.roll(shifts=-1, dims=1)
+        # # Prepare the final result tensor
+        # clses = clses.view(-1, 1).float()
+        # pred_alphas = pred_alphas.view(-1, 1)
+        # pred_rotys = pred_rotys.view(-1, 1)
+        # scores = scores.view(-1, 1)
+        # pred_dimensions = pred_dimensions.roll(shifts=-1, dims=1)
 
-        result = torch.cat([
-            clses, pred_alphas, pred_dimensions, pred_locations, pred_rotys, scores
-        ], dim=1)
+        # result = torch.cat([
+        #     clses, pred_alphas, pred_dimensions, pred_locations, pred_rotys, scores
+        # ], dim=1)
 
-        # Apply detection threshold
-        keep_idx = result[:, -1] > self.det_threshold
-        result = result[keep_idx]
+        # # Apply detection threshold
+        # keep_idx = result[:, -1] > self.det_threshold
+        # result = result[keep_idx]
 
         # Now, convert the result tensor into the desired structure
         results = {}
+        # Iterate over the batch to construct the final results
         for i in range(batch_size):
             preds = []
-            img_id = info['img_id'][i]
-            # Get the indices of the results that belong to the current image
-            batch_mask = (indices // (heatmap.shape[2] * heatmap.shape[3]) == i)
-            batch_mask = batch_mask[keep_idx.view(-1)]  # Apply the keep_idx mask
-
-            if not batch_mask.any():
-                results[img_id] = preds  # No detections for this image
-                continue
-
-            result_i = result[batch_mask]
-
-            for j in range(result_i.shape[0]):
-                cls_id = int(result_i[j, 0].item())
-                alpha = result_i[j, 1].item()
-                dimensions = result_i[j, 2:5] # + cls_mean_size[cls_id]
-                if torch.any(dimensions < 0):
+            for j in range(self.max_detection):
+                score = scores[i * self.max_detection + j]
+                if score < self.det_threshold:
                     continue
-                dimensions = dimensions.tolist()
 
-                locations = result_i[j, 5:8].tolist()
-                ry = result_i[j, 8].item()
-                score = result_i[j, 9].item()
+                cls_id = clses[i * self.max_detection + j].item()
 
                 # 2D bounding box decoding
-                x = xs[keep_idx.view(-1)][batch_mask][j] * info['bbox_downsample_ratio'][i][0]
-                y = ys[keep_idx.view(-1)][batch_mask][j] * info['bbox_downsample_ratio'][i][1]
-                # If you have width and height predictions, use them; otherwise, set default values
-                w = 1.0  # Placeholder, adjust if necessary
-                h = 1.0  # Placeholder, adjust if necessary
-                bbox = [x - w / 2, y - h / 2, x + w / 2, y + h / 2]
+                x, y = xs[i * self.max_detection + j], ys[i * self.max_detection + j]
+                w, h = pred_proj_offsets[i * self.max_detection + j]
 
-                preds.append([cls_id, alpha] + bbox + dimensions + locations + [ry, score])
-            results[img_id] = preds
+                bbox = [
+                    (x - w / 2).item() * info['bbox_downsample_ratio'][i][0],
+                    (y - h / 2).item() * info['bbox_downsample_ratio'][i][1],
+                    (x + w / 2).item() * info['bbox_downsample_ratio'][i][0],
+                    (y + h / 2).item() * info['bbox_downsample_ratio'][i][1],
+                ]
+
+                # Decode depth, dimensions, and positions
+                depth = pred_depths[i * self.max_detection + j].item()
+                dimensions = pred_dimensions[i * self.max_detection + j].tolist()
+                alpha = 0.00
+                ry = pred_rotys[i * self.max_detection + j].tolist()
+
+                locations = pred_locations[i * self.max_detection + j].tolist()
+
+                preds.append([cls_id, alpha] + bbox + dimensions + locations + [ry, score.item()])  # Append the prediction
+            results[info['img_id'][i]] = preds
 
         return results
     
@@ -149,12 +145,10 @@ class PostProcessor:
 
 
 
-def build_smoke_postprocessor(cfg):
+def build_smoke_postprocessor(cfg, device):
     smoke_coder_depth_reference = (28.01, 16.32)
-    smoke_coder_dimension_reference = ((3.88, 1.63, 1.53),
-                                        (1.78, 1.70, 0.58),
-                                        (0.88, 1.73, 0.67))
-    smoke_device = 'cuda:0'
+    smoke_coder_dimension_reference = cfg['dataset']['cls_mean_size']
+    smoke_device = device
 
     smoke_coder = SMOKECoder(
         smoke_coder_depth_reference,

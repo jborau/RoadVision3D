@@ -13,7 +13,7 @@ class SMOKEPredictor(nn.Module):
     def __init__(self, cfg, in_channels):
         super(SMOKEPredictor, self).__init__()
 
-        classes = len(('Car',))
+        classes = cfg['dataset']['cls_num']
         # classes = len(cfg.DATASETS.DETECT_CLASSES)
         # _C.DATASETS.DETECT_CLASSES = ("Car",)
 
@@ -89,14 +89,15 @@ class SMOKEPredictor(nn.Module):
         head_class = self.class_head(features)
         head_regression = self.regression_head(features)
 
-        head_class = sigmoid_hm(head_class)
+        # head_class = sigmoid_hm(head_class)
+        heatmap_head = torch.clamp(head_class.sigmoid_(), min=1e-4, max=1 - 1e-4)
         # (N, C, H, W)
         offset_dims = head_regression[:, self.dim_channel, ...].clone()
         head_regression[:, self.dim_channel, ...] = torch.sigmoid(offset_dims) - 0.5
 
         vector_ori = head_regression[:, self.ori_channel, ...].clone()
         head_regression[:, self.ori_channel, ...] = F.normalize(vector_ori)
-        return [head_class, head_regression] 
+        return [heatmap_head, head_regression] 
 
 
 def get_channel_spec(reg_channels, name):

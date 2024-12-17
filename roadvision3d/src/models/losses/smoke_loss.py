@@ -84,10 +84,12 @@ class SMOKELossComputation():
             calibs,
             downsample_ratio=4, # CHECK
         )
-        pred_dimensions = self.smoke_coder.decode_dimension(
-            targets_variables["cls_ids"],
-            pred_dimensions_offsets,
-        )
+        # pred_dimensions = self.smoke_coder.decode_dimension(
+        #     targets_variables["cls_ids"],
+        #     pred_dimensions_offsets,
+        # )
+
+        pred_dimensions = pred_dimensions_offsets #.exp() # if self.use_log_space else pred_dimensions_offsets
 
         # we need to change center location to bottom location
         pred_locations[:, 1] += pred_dimensions[:, 1] / 2
@@ -121,7 +123,8 @@ class SMOKELossComputation():
 
         predict_boxes3d = self.prepare_predictions(targets_variables, pred_regression, calibs)
 
-        hm_loss = self.cls_loss(pred_heatmap, targets_heatmap, alpha=2., beta=4.) * self.loss_weight[0]
+        # hm_loss = self.cls_loss(pred_heatmap, targets_heatmap, alpha=2., beta=4.) * self.loss_weight[0]
+        hm_loss = self.cls_loss(pred_heatmap, targets_heatmap)
 
         # Reshape predictions
         batch_size, max_objs = targets_variables["mask_2d"].shape
@@ -148,11 +151,20 @@ class SMOKELossComputation():
         position_pred_valid = position_pred[valid_mask]
         position_target_valid = position_target[valid_mask]
 
+        # print('location pred: ', position_pred_valid[0].detach().cpu().numpy(), 
+        #     position_target_valid[0].detach().cpu().numpy())
+            
+        # print('dimensions pred: ', dimension_pred_valid[0].detach().cpu().numpy(), 
+        #     dimension_target_valid[0].detach().cpu().numpy())
+        
+        # print('orientation pred: ', orientation_pred_valid[0].detach().cpu().numpy(), 
+        #     orientation_target_valid[0].detach().cpu().numpy())
+
+
         num_objs = valid_mask.sum()
         # Compute L1 loss
         if self.reg_loss == 'DisL1':
-            if num_objs > 0:
-                # reg_loss_ori = F.l1_loss(orientation_pred_valid, orientation_target_valid) / (self.loss_weight[1] * num_objs)
+            if num_objs > 0:                # reg_loss_ori = F.l1_loss(orientation_pred_valid, orientation_target_valid) / (self.loss_weight[1] * num_objs)
                 # reg_loss_dim = F.l1_loss(dimension_pred_valid, dimension_target_valid) / (self.loss_weight[1] * num_objs)
                 reg_loss_ori = F.l1_loss(orientation_pred_valid, orientation_target_valid) * self.loss_weight[1]
                 reg_loss_dim = F.l1_loss(dimension_pred_valid, dimension_target_valid) * self.loss_weight[1]
@@ -174,12 +186,10 @@ class SMOKELossComputation():
         return self.stat
 
 
-def build_smoke_loss(cfg):
-    smoke_coder_depth_reference = (28.01, 16.32)
-    smoke_coder_dimension_reference = ((3.88, 1.63, 1.53),
-                                        (1.78, 1.70, 0.58),
-                                        (0.88, 1.73, 0.67))
-    smoke_device = 'cuda:0'
+def build_smoke_loss(cfg, device):
+    smoke_coder_depth_reference = cfg['model']['depth_ref']
+    smoke_coder_dimension_reference = cfg['dataset']['cls_mean_size']
+    smoke_device = device
     # smoke_coder = SMOKECoder(
     #     cfg.MODEL.SMOKE_HEAD.DEPTH_REFERENCE,
     #     cfg.MODEL.SMOKE_HEAD.DIMENSION_REFERENCE,
