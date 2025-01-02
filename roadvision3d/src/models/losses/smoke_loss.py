@@ -1,197 +1,160 @@
 import torch
 from torch.nn import functional as F
-
+import torch.nn as nn
+import numpy as np 
 from .smoke_coder import SMOKECoder
 from .focal_loss import focal_loss
 from roadvision3d.src.engine.decode_helper import _transpose_and_gather_feat
 # from smoke.layers.utils import select_point_of_interest
 
 
-class SMOKELossComputation():
+class SMOKELossComputation(nn.Module):
     def __init__(self,
                  smoke_coder,
                  cls_loss,
                  reg_loss,
                  loss_weight,
                  max_objs,
-                 device):
+                 device,
+                 cls_mean_size):
+        super().__init__()
         self.smoke_coder = smoke_coder
         self.cls_loss = cls_loss
         self.reg_loss = reg_loss
         self.loss_weight = loss_weight
         self.max_objs = max_objs
         self.device = device
+        self.cls_mean_size = torch.tensor(cls_mean_size, device=device)
         self.stat = {}
 
-    def prepare_targets(self, targets):
+    def forward(self, preds, targets, calibs, info):
+        if targets['mask_2d'].sum() == 0:
+            device = targets['mask_2d'].device  # Get the device of the tensor
+            bbox2d_loss = torch.tensor(0.0, device=device)
+            bbox3d_loss = torch.tensor(0.0, device=device)
+            self.stat['offset2d_loss'] = torch.tensor(0.0, device=device)
+            self.stat['size2d_loss'] = torch.tensor(0.0, device=device)
+            self.stat['position_loss'] = torch.tensor(0.0, device=device)
+            self.stat['dimension_loss'] = torch.tensor(0.0, device=device)
+            self.stat['rotation_loss'] = torch.tensor(0.0, device=device)
+        else:
+            bbox2d_loss = self.compute_bbox2d_loss(preds, targets)
+            bbox3d_loss = self.compute_bbox3d_loss(preds, targets, calibs, info)
 
-        depth = targets['depth']
-        size_2d = targets['size_2d']
-        heatmap = targets['heatmap']
-        offset_2d = targets['offset_2d']
-        indices = targets['indices']
-        size_3d = targets['size_3d']
-        offset_3d = targets['offset_3d']
-        heading_bin = targets['heading_bin']
-        heading_res = targets['heading_res']
-        cls_ids = targets['cls_ids']
-        mask_2d = targets['mask_2d']
-        vis_depth = targets['vis_depth']
-        rotation_y = targets['rotation_y']
-        position = targets['position']
+        seg_loss = self.compute_segmentation_loss(preds, targets)
 
-        return heatmap, dict(depth=depth, size_2d=size_2d, offset_2d=offset_2d, 
-                            indices=indices, size_3d=size_3d, offset_3d=offset_3d,
-                            heading_bin=heading_bin, heading_res=heading_res,
-                            cls_ids=cls_ids, mask_2d=mask_2d, vis_depth=vis_depth,
-                            rotation_y=rotation_y, position=position)
+        mean_loss = seg_loss + bbox2d_loss + bbox3d_loss
+        return float(mean_loss), self.stat
+    
+    def compute_segmentation_loss(self, input, target):
+        input['heatmap'] = torch.clamp(input['heatmap'].sigmoid_(), min=1e-4, max=1 - 1e-4)
+        loss = focal_loss(input['heatmap'], target['heatmap']) * 5.0
+        self.stat['heatmap_loss'] = loss
+        return loss
+    
+    def compute_bbox2d_loss(self, input, target):
+        # compute size2d loss
+        
+        size2d_input = extract_input_from_tensor(input['size_2d'], target['indices'], target['mask_2d'])
+        size2d_target = extract_target_from_tensor(target['size_2d'], target['mask_2d'])
+        size2d_loss = F.l1_loss(size2d_input, size2d_target, reduction='mean')
 
+        # compute offset2d loss
+        offset2d_input = extract_input_from_tensor(input['offset_2d'], target['indices'], target['mask_2d'])
+        offset2d_target = extract_target_from_tensor(target['offset_2d'], target['mask_2d'])
+        offset2d_loss = F.l1_loss(offset2d_input, offset2d_target, reduction='mean')
 
-    def prepare_predictions(self, targets_variables, pred_regression, calibs):
-        batch, channel = pred_regression.shape[0], pred_regression.shape[1]
-        targets_proj_points = targets_variables["indices"]
+        loss = offset2d_loss + size2d_loss   
+        self.stat['offset2d_loss'] = offset2d_loss
+        self.stat['size2d_loss'] = size2d_loss
+        return loss
+    
+    def compute_bbox3d_loss(self, input, target, calibs, info):
+        B, M = target['mask_2d'].shape
+        device = input['heatmap'].device
+        size3d_input = extract_input_from_tensor(input['size_3d_offset'], target['indices'], target['mask_2d'])
+        pred_size_3d = size3d_input.exp() * torch.tensor(self.cls_mean_size, device=size3d_input.device)
+        size3d_target = extract_target_from_tensor(target['size_3d_smoke'], target['mask_2d'])
+        # print(f"Dims pred: {[f'{value:.2f}' for value in pred_size_3d[0].tolist()]}", 
+        # f"Dims target: {[f'{value:.2f}' for value in size3d_target[0].tolist()]}")
+        size3d_loss = F.l1_loss(pred_size_3d, size3d_target, reduction='mean')
 
-        # obtain prediction from points of interests
-        pred_regression_pois = select_point_of_interest(
-            batch, targets_proj_points, pred_regression
-        )
-        pred_regression_pois = pred_regression_pois.view(-1, channel)
-        # FIXME: fix hard code here
-        pred_depths_offset = pred_regression_pois[:, 0]
-        pred_proj_offsets = pred_regression_pois[:, 1:3]
-        pred_dimensions_offsets = pred_regression_pois[:, 3:6]
-        pred_orientation = pred_regression_pois[:, 6:]    
-
-        pred_depths = self.smoke_coder.decode_depth(pred_depths_offset)
-
-        # Assuming pred_regression is your feature map output
-        w = pred_regression.shape[3]  # Get width of the feature map
+        depth_offsets = extract_input_from_tensor(input['depth'], target['indices'], target['mask_2d'])
+        pred_depths = self.smoke_coder.decode_depth(depth_offsets)
+        # target_depths = extract_target_from_tensor(target['depth'], target['mask_2d'])
+        # depth_loss = F.l1_loss(pred_depth, target_depth, reduction='mean')
 
         # Recover the x and y coordinates from the flattened indices
-        x_coords = targets_proj_points % w
-        y_coords = targets_proj_points // w
+        w = input['heatmap'].shape[3]  # Get width of the feature map
+        h = input['heatmap'].shape[2]  # Get height of the feature map
+        x_coords = target['indices'] % w
+        y_coords = target['indices'] // w
 
-        # Flatten the batch and object dimensions
-        x_coords = x_coords.view(-1)
-        y_coords = y_coords.view(-1)
+        # Filter out invalid entries using the mask
+        valid_x_coords = x_coords[target['mask_2d']]
+        valid_y_coords = y_coords[target['mask_2d']]
 
         # Stack x and y into a tensor of shape [N, 2], where N is the total number of objects
-        points = torch.stack([x_coords, y_coords], dim=-1)
+        points = torch.stack([valid_x_coords, valid_y_coords], dim=-1)
+        pred_proj_offsets = extract_input_from_tensor(input['offset_3d'], target['indices'], target['mask_2d'])
+
+
+        # Create a batch index array of shape [B, M]
+        batch_indices = torch.arange(B, device=device).unsqueeze(1).expand(B, M)
+        mask = target['mask_2d'].bool()
+
+        # Flatten and select only valid entries
+        obj_batch_idx = batch_indices.flatten()[mask.flatten()]  # shape: [N], where N is number of valid objects   
+
+        # Extract Ks and invert for each object
+        Ks = calibs[:, :3, :3]  # shape [B, 3, 3]
+        Ks_inv = Ks.inverse()[obj_batch_idx]  # shape [N, 3, 3], aligned with points
+
+        downsamples = info['bbox_downsample_ratio'].to(device=device)
+        downsamples_per_object = downsamples.unsqueeze(1).expand(B, M, 2)
+        filtered_downsamples = downsamples_per_object.flatten(end_dim=1)[mask.flatten()]
 
         pred_locations = self.smoke_coder.decode_location(
             points,
             pred_proj_offsets,
             pred_depths,
-            calibs,
-            downsample_ratio=4, # CHECK
+            Ks_inv,
+            downsample_ratio=filtered_downsamples,
         )
-        # pred_dimensions = self.smoke_coder.decode_dimension(
-        #     targets_variables["cls_ids"],
-        #     pred_dimensions_offsets,
-        # )
+        # Correctly compute the full predicted height
+        pred_height = pred_size_3d[:, 0]  # Get the predicted height
 
-        pred_dimensions = pred_dimensions_offsets #.exp() # if self.use_log_space else pred_dimensions_offsets
+        # Shift the predicted center to the bottom of the bounding box
+        pred_locations[:, 1] += pred_height / 2
+        target_locations = extract_target_from_tensor(target['position'], target['mask_2d'])
+        # Print formatted values directly
+        # print(f"Pos pred: {[f'{value:.2f}' for value in pred_locations[0].tolist()]}", 
+        # f"pos target: {[f'{value:.2f}' for value in target_locations[0].tolist()]}")
+       
+        position_loss = F.l1_loss(pred_locations, target_locations, reduction='mean')
 
-        # we need to change center location to bottom location
-        pred_locations[:, 1] += pred_dimensions[:, 1] / 2
+        # ---- Orientation Loss ----
+        # Extract predicted orientation in [sin, cos] format
+        pred_ori = extract_input_from_tensor(input['ori'], target['indices'], target['mask_2d'])
 
-        pred_rotys, alphas = self.smoke_coder.decode_orientation(
-            pred_orientation,
-            pred_locations,
-            # targets_variables["flip_mask"]
-        )
+        # Decode predicted orientation into rotys (and alphas, if needed)
+        pred_rotys, pred_alphas = self.smoke_coder.decode_orientation(pred_ori, pred_locations)
 
+        # Extract target roty, which is already given in a decoded angle format
+        target_rotys = extract_target_from_tensor(target['rotation_y'], target['mask_2d'])
 
-
-        return dict(rot=pred_rotys,
-                    dim=pred_dimensions,
-                    loc=pred_locations, )
-
-        # elif self.reg_loss == "L1":
-        #     pred_box_3d = self.smoke_coder.encode_box3d(
-        #         pred_rotys,
-        #         pred_dimensions,
-        #         pred_locations
-        #     )
-        #     return pred_box_3d
-
-    def __call__(self, predictions, targets, calibs):
-        pred_heatmap, pred_regression, pred_size_2d = predictions[0], predictions[1], predictions[2]
-
-        # targets_heatmap, targets_regression, targets_variables \
-        #     = self.prepare_targets(targets)
-        targets_heatmap, targets_variables = self.prepare_targets(targets)
-
-        predict_boxes3d = self.prepare_predictions(targets_variables, pred_regression, calibs)
-
-        # hm_loss = self.cls_loss(pred_heatmap, targets_heatmap, alpha=2., beta=4.) * self.loss_weight[0]
-        hm_loss = self.cls_loss(pred_heatmap, targets_heatmap)
-
-        # Reshape predictions
-        batch_size, max_objs = targets_variables["mask_2d"].shape
-        orientation_pred = predict_boxes3d['rot'].view(batch_size, max_objs)
-        dimension_pred = predict_boxes3d['dim'].view(batch_size, max_objs, 3)
-        position_pred = predict_boxes3d['loc'].view(batch_size, max_objs, 3)
-
-        # Move target tensors to the same device
-        orientation_target = targets_variables["rotation_y"].to(self.device).view(batch_size, max_objs)
-        dimension_target = targets_variables["size_3d"].to(self.device)
-        position_target = targets_variables["position"].to(self.device)
+        # print('Rotys pred:', pred_rotys[0].item(), 'Rotys target:', target_rotys[0].item())
+        # print('\n')
+        # Compute rotation loss between decoded predicted rotys and target rotys
+        rotation_loss = F.l1_loss(pred_rotys, target_rotys, reduction='mean')
 
 
-        mask_2d = targets_variables["mask_2d"].to(self.device)
+        loss = size3d_loss + position_loss + rotation_loss
+        self.stat['dimension_loss'] = size3d_loss * 40.0
+        self.stat['position_loss'] = position_loss * 20.0
+        self.stat['rotation_loss'] = rotation_loss * 10.0
+        return loss
 
-        # Create valid mask
-        valid_mask = mask_2d.bool()
-
-        # Select valid predictions and targets
-        orientation_pred_valid = orientation_pred[valid_mask]
-        orientation_target_valid = orientation_target[valid_mask]
-        dimension_pred_valid = dimension_pred[valid_mask]
-        dimension_target_valid = dimension_target[valid_mask]
-        position_pred_valid = position_pred[valid_mask]
-        position_target_valid = position_target[valid_mask]
-
-        # print('location pred: ', position_pred_valid[0].detach().cpu().numpy(), 
-        #     position_target_valid[0].detach().cpu().numpy())
-            
-        # print('dimensions pred: ', dimension_pred_valid[0].detach().cpu().numpy(), 
-        #     dimension_target_valid[0].detach().cpu().numpy())
-        
-        # print('orientation pred: ', orientation_pred_valid[0].detach().cpu().numpy(), 
-        #     orientation_target_valid[0].detach().cpu().numpy())
-
-
-        # SIZE_2D MODULE
-        size2d_input = extract_input_from_tensor(pred_size_2d, targets['indices'], targets['mask_2d'])
-        size2d_target = extract_target_from_tensor(targets['size_2d'], targets['mask_2d'])
-
-        num_objs = valid_mask.sum()
-        # Compute L1 loss
-        if self.reg_loss == 'DisL1':
-            if num_objs > 0:                # reg_loss_ori = F.l1_loss(orientation_pred_valid, orientation_target_valid) / (self.loss_weight[1] * num_objs)
-                # reg_loss_dim = F.l1_loss(dimension_pred_valid, dimension_target_valid) / (self.loss_weight[1] * num_objs)
-                reg_loss_ori = F.l1_loss(orientation_pred_valid, orientation_target_valid) * self.loss_weight[1]
-                reg_loss_dim = F.l1_loss(dimension_pred_valid, dimension_target_valid) * self.loss_weight[1]
-                reg_loss_pos = F.l1_loss(position_pred_valid, position_target_valid) * self.loss_weight[1]
-                size2d_loss = F.l1_loss(size2d_input, size2d_target, reduction='mean')
-
-
-            else:
-                reg_loss_ori = torch.tensor(0.0, device=self.device)
-                reg_loss_dim = torch.tensor(0.0, device=self.device)
-                reg_loss_pos = torch.tensor(0.0, device=self.device)
-
-
-        self.stat = {
-            'heatmap_loss': hm_loss,
-            'position_loss': reg_loss_pos,
-            'dimension_loss': reg_loss_dim,
-            'rotation_loss': reg_loss_ori,
-            'size_2d_loss': size2d_loss,
-        }
-
-        return self.stat
 
 
 def build_smoke_loss(cfg, device):
@@ -223,40 +186,13 @@ def build_smoke_loss(cfg, device):
         # max_objs=cfg.DATASETS.MAX_OBJECTS,
         max_objs = 50,
         device=smoke_device,
+        cls_mean_size=cfg['dataset']['cls_mean_size'],
         )
 
     return loss_evaluator
 
-def select_point_of_interest(batch, indices, feature_maps):
-    '''
-    Select POI (points of interest) on feature map using flat indices.
-    Args:
-        batch: batch size
-        indices: flattened indices (directly as integers referring to positions in the feature map)
-        feature_maps: regression feature map in [N, C, H, W] format
+### ======================  auxiliary functions  =======================
 
-    Returns:
-        Features at the points of interest, of shape [batch, num_pois, channel]
-    '''
-    # Reshape the feature maps from [N, C, H, W] to [N, H*W, C]
-    feature_maps = feature_maps.permute(0, 2, 3, 1).contiguous()
-    channel = feature_maps.shape[-1]
-    feature_maps = feature_maps.view(batch, -1, channel)
-
-    # Reshape indices to match the batch size
-    indices = indices.view(batch, -1)
-
-    # Expand indices to cover the channel dimension
-    indices = indices.unsqueeze(-1).repeat(1, 1, channel)
-
-    # Gather the feature values using the indices
-    selected_features = feature_maps.gather(1, indices.long())
-
-    return selected_features
-
-
-
-# SIZE_2D MODULE
 def extract_input_from_tensor(input, ind, mask):
     input = _transpose_and_gather_feat(input, ind)  # B*C*H*W --> B*K*C
     return input[mask]  # B*K*C --> M * C

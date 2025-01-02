@@ -27,7 +27,7 @@ class KeypointDetector(nn.Module):
         self.heads = build_heads(cfg, self.backbone.channels, self.first_level, device)
 
 
-    def forward(self, input, calib, targets=None, coord_ranges=None, epoch=1, K=50, mode='train', calib_tmp=None, info=None, cls_mean_size=None):
+    def forward(self, input, calib, targets=None, coord_ranges=None, epoch=1, K=50, mode='train', info=None, cls_mean_size=None):
         """
         Args:
             images:
@@ -38,7 +38,7 @@ class KeypointDetector(nn.Module):
         """
         feat = self.backbone(input)
         feat = self.neck(feat[self.first_level:])
-        result, detector_losses = self.heads(feat, calib, targets, coord_ranges, epoch, mode=mode, calibs_tmp=calib_tmp, info=info, cls_mean_size=cls_mean_size)
+        result, detector_losses = self.heads(feat, calib, targets, coord_ranges, epoch, mode=mode, info=info, cls_mean_size=cls_mean_size)
 
         if mode=='train':
             losses = {}

@@ -36,34 +36,34 @@ model:
 
 optimizer:
   type: 'adam'
-  lr: 0.001
+  lr: 0.0008
   weight_decay: 0.00001
 
 lr_scheduler:
   warmup: True  # 5 epoches, cosine warmup, init_lir=0.00001 in default
-  decay_rate: 0.1
+  decay_rate: 0.5
   # decay_list: [240, 360, 480]
-  decay_list: [90, 120]
+  decay_list: [30, 55, 75, 95, 110, 125, 135, 143] # [90, 120]
 
 trainer:
   max_epoch: 150
   eval_start: 15
   eval_frequency: 15 # evaluation interval (in epoch)
-  save_frequency: 50 # checkpoint save interval (in epoch)
+  save_frequency: 30 # checkpoint save interval (in epoch)
   disp_frequency: 100 # display interval (in batch)
-  log_dir: 'work_dirs/MonoLSS_Rope3d_150e/logs/'
-  out_dir: 'work_dirs/MonoLSS_Rope3d_150e/output/'
+  log_dir: 'work_dirs/MonoLSS_Rope3d_150e_navidad/logs/'
+  out_dir: 'work_dirs/MonoLSS_Rope3d_150e_navidad/output/'
   # resume_model: ''
 
 tester:
   threshold: 0.2  # confidence filter
   top_k: 50  # max number of boxes
-  out_dir: 'work_dirs/MonoLSS_Rope3d_150e/testset_out'
+  out_dir: 'work_dirs/MonoLSS_Rope3d_150e_navidad/testset_out'
   resume_model: '' # pre-trained model path
 
 
 wandb:
-  name: "MonoLSS_Rope3D_150e"
-  notes: "MonoLSS trained on Rope3D over 100e"
+  name: "MonoLSS_Rope3D_150e_navidad"
+  notes: "MonoLSS trained on Rope3D over 150e"
 
 

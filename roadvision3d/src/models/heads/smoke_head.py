@@ -15,18 +15,18 @@ class SmokeHead(nn.Module):
         self.predictor = build_smoke_predictor(cfg, in_channels)
         self.loss_evaluator = build_smoke_loss(cfg, device)
         self.post_processor = build_smoke_postprocessor(cfg, device)
+        self.cls_mean_size = np.array(cfg['dataset']['cls_mean_size'])
 
 
-    def forward(self, features, calib, targets=None, coord_ranges=None, epoch=1, mode='train', calibs_tmp=None, info=None, cls_mean_size=None):
+    def forward(self, features, calib, targets=None, coord_ranges=None, epoch=1, mode='train', info=None, cls_mean_size=None):
         # x = self.predictor(features, calib, coord_ranges, targets, mode=mode)
         x = self.predictor(features)
-        
         if mode=='train':
             # loss_heatmap, loss_regression = self.loss_evaluator(x, targets, calib)
-            losses_dict = self.loss_evaluator(x, targets, calib)
-            return {}, losses_dict
+            total_loss, loss_terms = self.loss_evaluator(x, targets, calib, info)
+            return {}, loss_terms
         else:
-            result = self.post_processor(x, calib, info=info, cls_mean_size=cls_mean_size)
+            result = self.post_processor(x, calib, info=info, cls_mean_size=self.cls_mean_size)
             # result = x
             return result, {}
 

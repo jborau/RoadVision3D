@@ -285,20 +285,20 @@ class Visualizer_dataloader:
         blended = cv2.addWeighted(img, 1 - alpha, heatmap_colored, alpha, 0)
 
         # Compute center positions
-        valid_mask = targets['mask_2d'] == 1
-        valid_indices = targets['indices'][valid_mask]
-        valid_offset_2d = targets['offset_2d'][valid_mask]
+        # valid_mask = targets['mask_2d'] == 1
+        # valid_indices = targets['indices'][valid_mask]
+        # valid_offset_2d = targets['offset_2d'][valid_mask]
 
         downsample_factor = self.cfg['downsample']
         feature_map_width = inputs.shape[2] // downsample_factor
 
-        centers_x = ((valid_indices % feature_map_width) + valid_offset_2d[:, 0]) * downsample_factor
-        centers_y = ((valid_indices // feature_map_width) + valid_offset_2d[:, 1]) * downsample_factor
+        # centers_x = ((valid_indices % feature_map_width) + valid_offset_2d[:, 0]) * downsample_factor
+        # centers_y = ((valid_indices // feature_map_width) + valid_offset_2d[:, 1]) * downsample_factor
 
         # Plot the image with centers
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.imshow(blended)
-        ax.scatter(centers_x, centers_y, c='red', s=50, marker='.', label='Object Center')
+        # ax.scatter(centers_x, centers_y, c='red', s=50, marker='.', label='Object Center')
         ax.legend()
         ax.axis('off')
         if save_path:

@@ -14,24 +14,10 @@ class SMOKEPredictor(nn.Module):
         super(SMOKEPredictor, self).__init__()
 
         classes = cfg['dataset']['cls_num']
-        # classes = len(cfg.DATASETS.DETECT_CLASSES)
-        # _C.DATASETS.DETECT_CLASSES = ("Car",)
-
         regression = 8
-        # regression = cfg.MODEL.SMOKE_HEAD.REGRESSION_HEADS
-        # _C.MODEL.SMOKE_HEAD.REGRESSION_HEADS = 8
-
         regression_channels = (1, 2, 3, 2)
-        # regression_channels = cfg.MODEL.SMOKE_HEAD.REGRESSION_CHANNEL
-        # _C.MODEL.SMOKE_HEAD.REGRESSION_CHANNEL = (1, 2, 3, 2)
-
         head_conv = 256
-        # head_conv = cfg.MODEL.SMOKE_HEAD.NUM_CHANNEL
-        # _C.MODEL.SMOKE_HEAD.NUM_CHANNEL = 256
-
         norm_func = _HEAD_NORM_SPECS['BN']
-        # norm_func = _HEAD_NORM_SPECS[cfg.MODEL.SMOKE_HEAD.USE_NORMALIZATION]
-        # _C.MODEL.SMOKE_HEAD.USE_NORMALIZATION = "GN" 
 
         assert sum(regression_channels) == regression, \
             "the sum of {} must be equal to regression channel of {}".format(
@@ -45,7 +31,7 @@ class SMOKEPredictor(nn.Module):
         #TODO: check this
         in_channels = in_channels[2] 
 
-        self.class_head = nn.Sequential(
+        self.heatmap_head = nn.Sequential(
             nn.Conv2d(in_channels,
                       head_conv,
                       kernel_size=3,
@@ -63,9 +49,19 @@ class SMOKEPredictor(nn.Module):
                       bias=True)
         )
 
-        # TODO: what is datafill here
-        self.class_head[-1].bias.data.fill_(-2.19)
+        self.heatmap_head[-1].bias.data.fill_(-2.19)
 
+        # 2D BBOX MODULE
+        self.size_2d = nn.Sequential(nn.Conv2d(in_channels, head_conv, kernel_size=3, padding=1, bias=True),
+                                     nn.ReLU(inplace=True),
+                                     nn.Conv2d(head_conv, 2, kernel_size=1, stride=1, padding=0, bias=True))
+        self.offset_2d = nn.Sequential(nn.Conv2d(in_channels, head_conv, kernel_size=3, padding=1, bias=True),
+                                     nn.ReLU(inplace=True),
+                                     nn.Conv2d(head_conv, 2, kernel_size=1, stride=1, padding=0, bias=True))
+        _fill_fc_weights(self.size_2d)
+        _fill_fc_weights(self.offset_2d)
+
+        # 3D REGRESSION MODULE
         self.regression_head = nn.Sequential(
             nn.Conv2d(in_channels,
                       head_conv,
@@ -85,29 +81,36 @@ class SMOKEPredictor(nn.Module):
         )
         _fill_fc_weights(self.regression_head)
 
-        # 2D BBOX MODULE
-        self.size_2d = nn.Sequential(nn.Conv2d(in_channels, head_conv, kernel_size=3, padding=1, bias=True),
-                                     nn.ReLU(inplace=True),
-                                     nn.Conv2d(head_conv, 2, kernel_size=1, stride=1, padding=0, bias=True))
-        _fill_fc_weights(self.size_2d)
-
     def forward(self, features):
-        head_class = self.class_head(features)
-        head_regression = self.regression_head(features)
+        ret = {}
 
-        # head_class = sigmoid_hm(head_class)
-        heatmap_head = torch.clamp(head_class.sigmoid_(), min=1e-4, max=1 - 1e-4)
-        # (N, C, H, W)
-        offset_dims = head_regression[:, self.dim_channel, ...].clone()
-        head_regression[:, self.dim_channel, ...] = torch.sigmoid(offset_dims) - 0.5
+        heatmap_reg = self.heatmap_head(features)
 
-        vector_ori = head_regression[:, self.ori_channel, ...].clone()
-        head_regression[:, self.ori_channel, ...] = F.normalize(vector_ori)
-
-        # 2d head
         size_2d_reg = self.size_2d(features)
+        offset_2d_reg = self.offset_2d(features)
 
-        return [heatmap_head, head_regression, size_2d_reg] 
+        regression_reg = self.regression_head(features)
+
+        ret['heatmap'] = heatmap_reg
+        ret['size_2d'] = size_2d_reg
+        ret['offset_2d'] = offset_2d_reg
+
+
+        # Depth: Directly extract (no sigmoid needed)
+        ret['depth'] = regression_reg[:, 0:1, :, :]
+
+        # Offset 3D: Directly extract (no sigmoid needed)
+        ret['offset_3d'] = regression_reg[:, 1:3, :, :]
+
+        # Dimension offset: Apply sigmoid and shift by -0.5
+        dimension_offset = regression_reg[:, self.dim_channel, :, :].clone()
+        ret['size_3d_offset'] = torch.sigmoid(dimension_offset) - 0.5
+
+        # Orientation: Normalize
+        vector_ori = regression_reg[:, self.ori_channel, :, :].clone()
+        ret['ori'] = F.normalize(vector_ori)
+
+        return ret
 
 
 def get_channel_spec(reg_channels, name):

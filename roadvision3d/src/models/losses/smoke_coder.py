@@ -130,53 +130,23 @@ class SMOKECoder():
 
         return depth
 
-    def decode_location(self, points, points_offset, depths, calibs, downsample_ratio):
-        '''
-        retrieve objects location in camera coordinate based on projected points
-        Args:
-            points: projected points on feature map in (x, y)
-            points_offset: project points offset in (delta_x, delta_y)
-            depths: object depth z
-            Ks: camera intrinsic matrix, shape = [N, 3, 3]
-            downsample_ratio: the ratio by which the image was downsampled to the feature map size
-
-        Returns:
-            locations: objects location, shape = [N, 3]
-        '''
-
+    def decode_location(self, points, points_offset, depths, Ks_inv, downsample_ratio):
         device = points.device
+        N = points.shape[0]
 
-
-        Ks = calibs[:, :3, :3].to(device=device)
-
-        # number of points
-        N = points_offset.shape[0]
-        # batch size
-        N_batch = Ks.shape[0]
-        batch_id = torch.arange(N_batch).unsqueeze(1)
-        obj_id = batch_id.repeat(1, N // N_batch).flatten()
-
-        Ks_inv = Ks.inverse()[obj_id]
-
-        points = points.view(-1, 2)
-        assert points.shape[0] == N
+        # Convert points back to image space
         proj_points = points + points_offset
-
-        # Manually scale the points back to the original image space using the downsample ratio
         proj_points_img = proj_points * downsample_ratio
 
-        # Transform back with depth
-        proj_points_img = proj_points_img * depths.view(N, -1)
+        # Scale by depth
+        proj_points_img = proj_points_img * depths
+        proj_points_img = torch.cat([proj_points_img, depths], dim=1).unsqueeze(-1) # [N, 3, 1]
 
-        # Convert to 3D world coordinates
-        proj_points_img = torch.cat((proj_points_img, torch.ones(N, 1).to(device=device) * depths.view(N, -1)), dim=1)
-        proj_points_img = proj_points_img.unsqueeze(-1)  # Reshape to [N, 3, 1]
-        
-        # Transform image coordinates back to 3D locations
-        locations = torch.matmul(Ks_inv, proj_points_img)
+        # Apply Ks_inv
+        proj_points_img = proj_points_img.float()
+        locations = torch.matmul(Ks_inv, proj_points_img).squeeze(-1) # [N, 3]
 
-        return locations.squeeze(2)
-
+        return locations
 
 
     def decode_dimension(self, cls_id, dims_offset):

@@ -15,10 +15,11 @@ class Hierarchical_Task_Learning:
         self.past_losses=[]
         if cfg['model']['type']=='SMOKE':
             self.loss_graph = {'heatmap_loss':[],
+                               'offset2d_loss':[],
+                               'size2d_loss':[],
                                'position_loss':[],
                                'dimension_loss': [],
                                'rotation_loss':[],
-                               'size_2d_loss':[],
                            }
         else:
             self.loss_graph = {'seg_loss':[],

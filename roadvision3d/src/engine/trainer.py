@@ -138,7 +138,7 @@ class Trainer(object):
                 # criterion = self.model.loss(self.epoch)
                 # outputs = self.model(inputs,coord_ranges,calibs,targets)
                 # _, loss_terms = criterion(outputs, targets)
-                loss_terms = self.model(inputs, calibs, targets, coord_ranges, self.epoch) # , targets, self.epoch)
+                loss_terms = self.model(inputs, calibs, targets, coord_ranges, self.epoch, info=info) # , targets, self.epoch)
                 
                 trained_batch = batch_idx + 1
                 # accumulate statistics
@@ -172,7 +172,7 @@ class Trainer(object):
             # outputs = self.model(inputs,coord_ranges,calibs,targets)
 
             # total_loss, loss_terms = criterion(outputs, targets)
-            loss_terms = self.model(inputs, calibs, targets, coord_ranges, self.epoch) # , targets, self.epoch)
+            loss_terms = self.model(inputs, calibs, targets, coord_ranges, self.epoch, info=info) # , targets, self.epoch)
             total_loss = float(sum(loss for loss in loss_terms.values()))
 
             
