@@ -377,6 +377,7 @@ class KITTI(data.Dataset):
                        'vis_depth': vis_depth,
                        'rotation_y': rotation_y,
                        'position': position,
+                       'size_3d_smoke': src_size_3d,
                        }
         else:
             targets = {}

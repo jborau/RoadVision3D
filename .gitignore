@@ -3,6 +3,8 @@ work_dirs/
 work_dirs_old/
 roadvision3d/data/
 wandb/
+*.pt
+*.avi
 
 
 # Byte-compiled / optimized / DLL files
