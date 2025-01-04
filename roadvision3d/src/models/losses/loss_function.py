@@ -253,7 +253,6 @@ def compute_heading_loss(input, ind, mask, target_cls, target_reg):
 
 
 def gumbel_softmax_topk(logits, tau=1, hard=False, eps=1e-10, dim=-1,k=1,soft_ = False):
-    #type: (Tensor, float, bool, float, int, int, bool) -> Tensor
     r"""
     Samples from the Gumbel-Softmax distribution (`Link 1`_  `Link 2`_) and optionally discretizes.
 
@@ -295,7 +294,7 @@ def gumbel_softmax_topk(logits, tau=1, hard=False, eps=1e-10, dim=-1,k=1,soft_ =
     """
 
     if eps != 1e-10:
-        warnings.warn("`eps` parameter is deprecated and has no effect.")
+        print("`eps` parameter is deprecated and has no effect.")
 
     gumbels = -torch.empty_like(logits).exponential_().log()  # ~Gumbel(0,1)
     gumbels = (logits + gumbels) / tau  # ~Gumbel(logits,tau)

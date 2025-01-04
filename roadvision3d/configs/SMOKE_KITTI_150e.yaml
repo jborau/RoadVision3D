@@ -2,8 +2,7 @@ dataset:
   type: 'kitti'
   data_dir: '/home/javier/datasets/kitti'
   label_dir: '/home/javier/datasets/kitti/training/label_2'
-  split_dir: '/home/javier/pytorch/splits/KITTI_reduced'
-  # split_dir : '/home/javier/datasets/kitti/ImageSets'
+  split_dir : '/home/javier/datasets/kitti/ImageSets'
   eval_cls: ['Car','Pedestrian','Cyclist']
   batch_size: 8
   num_workers: 16
@@ -55,18 +54,18 @@ trainer:
   eval_frequency: 15 # evaluation interval (in epoch)
   save_frequency: 50 # checkpoint save interval (in epoch)
   disp_frequency: 10 # display interval (in batch)
-  log_dir: 'work_dirs/SMOKE_KITTI_EXP/logs/'
-  out_dir: 'work_dirs/SMOKE_KITTI_EXP/output/'
+  log_dir: 'work_dirs/SMOKE_KITTI_150e/logs/'
+  out_dir: 'work_dirs/SMOKE_KITTI_150e/output/'
   resume_model: ''
 
 tester:
   threshold: 0.2  # confidence filter
   top_k: 50  # max number of boxes
-  out_dir: './SMOKE_KITTI_EXP/testset_out'
+  out_dir: './SMOKE_KITTI_150e/testset_out'
   resume_model: '' # pre-trained model path
 
 
 wandb:
-  name: "Experiments"
-  notes: "SMOKE EXP trained on KITTI over 150e"
+  name: "SMOKE_KITTI_150e"
+  notes: "SMOKE trained on KITTI during 150e"
 

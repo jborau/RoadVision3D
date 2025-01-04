@@ -73,11 +73,13 @@ class SMOKELossComputation(nn.Module):
         B, M = target['mask_2d'].shape
         device = input['heatmap'].device
         size3d_input = extract_input_from_tensor(input['size_3d_offset'], target['indices'], target['mask_2d'])
-        pred_size_3d = size3d_input.exp() * torch.tensor(self.cls_mean_size, device=size3d_input.device)
-        size3d_target = extract_target_from_tensor(target['size_3d_smoke'], target['mask_2d'])
-        # print(f"Dims pred: {[f'{value:.2f}' for value in pred_size_3d[0].tolist()]}", 
-        # f"Dims target: {[f'{value:.2f}' for value in size3d_target[0].tolist()]}")
-        size3d_loss = F.l1_loss(pred_size_3d, size3d_target, reduction='mean')
+        # pred_size_3d = size3d_input.exp() * torch.tensor(self.cls_mean_size, device=size3d_input.device)
+        # pred_size_3d = size3d_input.exp()
+        # size3d_target = extract_target_from_tensor(target['size_3d_smoke'], target['mask_2d'])
+        # size3d_loss = F.l1_loss(pred_size_3d, size3d_target, reduction='mean')
+        pred_size_ratio = size3d_input.exp()  # shape [N, 3]
+        gt_size_ratio = extract_target_from_tensor(target['size_3d_smoke'], target['mask_2d'])
+        size3d_loss = F.l1_loss(pred_size_ratio, gt_size_ratio, reduction='mean')
 
         depth_offsets = extract_input_from_tensor(input['depth'], target['indices'], target['mask_2d'])
         pred_depths = self.smoke_coder.decode_depth(depth_offsets)
@@ -121,11 +123,15 @@ class SMOKELossComputation(nn.Module):
             Ks_inv,
             downsample_ratio=filtered_downsamples,
         )
-        # Correctly compute the full predicted height
-        pred_height = pred_size_3d[:, 0]  # Get the predicted height
 
-        # Shift the predicted center to the bottom of the bounding box
-        pred_locations[:, 1] += pred_height / 2
+        # Now shift center by *real* half-height
+        cls_ids = extract_target_from_tensor(target['cls_ids'], target['mask_2d'])
+        mean_sizes = torch.tensor(self.cls_mean_size, device=device)[cls_ids]
+        pred_size_3d_real = pred_size_ratio * mean_sizes  # shape [N, 3]
+        pred_height = pred_size_3d_real[:, 0]
+
+        pred_locations[:, 1] += pred_height / 2  # shift center
+
         target_locations = extract_target_from_tensor(target['position'], target['mask_2d'])
         # Print formatted values directly
         # print(f"Pos pred: {[f'{value:.2f}' for value in pred_locations[0].tolist()]}", 

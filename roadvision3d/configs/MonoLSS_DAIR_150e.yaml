@@ -4,7 +4,7 @@ dataset:
   split_dir: '/home/javier/datasets/DAIR-V2X/single-infrastructure-side-mmdet'
   label_dir: '/home/javier/datasets/DAIR-V2X/single-infrastructure-side/label'
   eval_cls: ['Car','Pedestrian','Cyclist']
-  batch_size: 14 #6
+  batch_size: 6
   num_workers: 16
   class_merging: False
   use_dontcare: False
@@ -20,8 +20,7 @@ dataset:
                   [1.42871768, 0.64937362, 1.68556033]]
   cls_num: 3
   max_objs: 100
-  resolution: [1280, 736]
-  # resolution: [1920, 1088]
+  resolution: [1920, 1088]
   mean: [0.485, 0.456, 0.406]
   std: [0.229, 0.224, 0.225]
   downsample: 4
