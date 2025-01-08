@@ -46,7 +46,7 @@ lr_scheduler:
   warmup: True  # 5 epoches, cosine warmup, init_lir=0.00001 in default
   decay_rate: 0.1
   # decay_list: [240, 360, 480]
-  decay_list: [40, 60, 80]
+  decay_list: [60, 90, 120]
 
 trainer:
   max_epoch: 150
@@ -68,4 +68,3 @@ tester:
 wandb:
   name: "SMOKE_KITTI_150e"
   notes: "SMOKE trained on KITTI during 150e"
-
