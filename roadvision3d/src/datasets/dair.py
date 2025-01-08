@@ -179,6 +179,7 @@ class DAIR(data.Dataset):
             heading_bin = np.zeros((self.max_objs, 1), dtype=np.int64)
             heading_res = np.zeros((self.max_objs, 1), dtype=np.float32)
             src_size_3d = np.zeros((self.max_objs, 3), dtype=np.float32)
+            size_3d_smoke = np.zeros((self.max_objs, 3), dtype=np.float32)
             size_3d = np.zeros((self.max_objs, 3), dtype=np.float32)
             offset_3d = np.zeros((self.max_objs, 2), dtype=np.float32)
             height2d = np.zeros((self.max_objs, 1), dtype=np.float32)
@@ -267,6 +268,7 @@ class DAIR(data.Dataset):
                 src_size_3d[i] = np.array([objects[i].h, objects[i].w, objects[i].l], dtype=np.float32)
                 mean_size = self.cls_mean_size[self.cls2id[objects[i].cls_type]]
                 size_3d[i] = src_size_3d[i] - mean_size
+                size_3d_smoke[i] = src_size_3d[i] / mean_size
 
                 #objects[i].trucation <=0.5 and objects[i].occlusion<=2 and (objects[i].box2d[3]-objects[i].box2d[1])>=25:
                 if objects[i].trucation <=0.5 and objects[i].occlusion<=2:
@@ -353,6 +355,7 @@ class DAIR(data.Dataset):
                     src_size_3d[i + object_num] = np.array([objects[i].h, objects[i].w, objects[i].l], dtype=np.float32)
                     mean_size = self.cls_mean_size[self.cls2id[objects[i].cls_type]]
                     size_3d[i + object_num] = src_size_3d[i + object_num] - mean_size
+                    size_3d_smoke[i + object_num] = src_size_3d[i + object_num] / mean_size
 
                     if objects[i].trucation <=0.5 and objects[i].occlusion<=2:
                         mask_2d[i + object_num] = 1
@@ -374,6 +377,7 @@ class DAIR(data.Dataset):
                        'vis_depth': vis_depth,
                        'rotation_y': rotation_y,
                        'position': position,
+                       'size_3d_smoke': size_3d_smoke,
                        }
         else:
             targets = {}
