@@ -1,0 +1,69 @@
+dataset:
+  type: 'rope3d'
+  data_dir: '/home/javier/datasets/rope3d-backup'
+  split_dir: '/home/javier/pytorch/splits/rope3d_splits'
+  label_dir: '/home/javier/datasets/rope3d-backup/training/label_2'
+  eval_cls: ['car','pedestrian','cyclist']
+  batch_size: 6
+  num_workers: 16
+  class_merging: False
+  use_dontcare: False
+  use_3d_center: True
+  writelist: ['car','pedestrian','cyclist']
+  random_flip: 0.5 #0.5
+  random_crop: 0.5 #0.5
+  scale: 0.4
+  shift: 0.1
+  drop_last_val: True
+  cls_mean_size: [[1.69076256, 1.95625980, 4.59149442],
+                  [1.64686968, 0.56291266, 0.52403671],
+                  [1.42871768, 0.64937362, 1.68556033]]
+  cls_num: 3
+  max_objs: 100
+  resolution: [1920, 1088]
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  downsample: 4
+
+model:
+  type: 'MonoLSS'
+  backbone: 'dla34'
+  neck: 'DLAUp'
+  head: 'MonoLSSHead'
+  loss: 'LSS_Loss'
+  downsample: 4
+
+
+optimizer:
+  type: 'adam'
+  lr: 0.0008
+  weight_decay: 0.00001
+
+lr_scheduler:
+  warmup: True  # 5 epoches, cosine warmup, init_lir=0.00001 in default
+  decay_rate: 0.5
+  # decay_list: [240, 360, 480]
+  decay_list: [30, 55, 75, 95, 110, 125, 135, 143] # [90, 120]
+
+trainer:
+  max_epoch: 150
+  eval_start: 15
+  eval_frequency: 15 # evaluation interval (in epoch)
+  save_frequency: 30 # checkpoint save interval (in epoch)
+  disp_frequency: 100 # display interval (in batch)
+  log_dir: 'work_dirs/MonoLSS_Rope3d_150e_navidad/logs/'
+  out_dir: 'work_dirs/MonoLSS_Rope3d_150e_navidad/output/'
+  # resume_model: ''
+
+tester:
+  threshold: 0.2  # confidence filter
+  top_k: 50  # max number of boxes
+  out_dir: 'work_dirs/MonoLSS_Rope3d_150e_navidad/testset_out'
+  resume_model: '' # pre-trained model path
+
+
+wandb:
+  name: "MonoLSS_Rope3D_150e_navidad"
+  notes: "MonoLSS trained on Rope3D over 150e"
+
+
