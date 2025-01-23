@@ -21,6 +21,15 @@ class Hierarchical_Task_Learning:
                                'dimension_loss': [],
                                'rotation_loss':[],
                            }
+        if cfg['model']['type']=='GUPNet':
+            self.loss_graph = {'seg_loss':[],
+                           'size2d_loss':[], 
+                           'offset2d_loss':[],
+                           'offset3d_loss':['size2d_loss','offset2d_loss'], 
+                           'size3d_loss':['size2d_loss','offset2d_loss'], 
+                           'heading_loss':['size2d_loss','offset2d_loss'], 
+                           'depth_loss':['size2d_loss','size3d_loss','offset2d_loss']} 
+
         else:
             self.loss_graph = {'seg_loss':[],
                            'size2d_loss':[], 
