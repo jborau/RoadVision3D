@@ -45,7 +45,7 @@ model:
 
 optimizer:
   type: 'adam'
-  lr: 0.00125 # 0.0009375 #0.00125
+  lr: 0.0009375 # 0.0009375 #0.00125
   weight_decay: 0.00001
 
 lr_scheduler:
