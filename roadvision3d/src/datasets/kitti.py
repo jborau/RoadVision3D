@@ -60,7 +60,6 @@ class KITTI(data.Dataset):
         self.label_dir = os.path.join(self.data_dir, 'label_2')
         
         # data augmentation configuration
-        self.data_augmentation_flag = True if split in ['train', 'trainval'] else False
         self.data_augmentation = DataAugmention(cfg, dataset=self)
 
         # statistics
