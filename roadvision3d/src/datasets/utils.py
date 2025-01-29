@@ -1,6 +1,184 @@
 import numpy as np
 
 
+import numpy as np
+from roadvision3d.src.datasets.object_3d import affine_transform
+
+def encode_targets(objects, calib, trans, features_size,
+                   num_classes, max_objs, use_3d_center,
+                   downsample, cls_mean_size, cls2id, writelist
+                    ):
+    """
+    Encode 2D and 3D bounding box information into heatmap and regression targets.
+    
+    Args:
+        objects       (List[Object3d]): List of annotated 3D objects for this sample.
+        calib         (Calibration):    Calibration object (for 3D-to-2D projection).
+        trans         (np.ndarray):     Affine transform matrix (2x3) for image coords.
+        features_size (Tuple[int,int]): (W', H') final feature map size after downsample.
+        num_classes   (int):            Number of classes to detect.
+        max_objs      (int):            Maximum number of objects to detect.
+        use_3d_center (bool):           Whether to use 3D center for heatmap placement.
+        downsample    (int):            Downsample factor for final feature map.
+        cls_mean_size (np.ndarray):     Mean 3D size for each class (cls_num, 3).
+        cls2id        (Dict[str,int]):   Mapping from class name to class ID.
+        writelist     (List[str]):       List of classes to detect.
+
+    Returns:
+        targets (dict): {
+            'depth':         np.ndarray,  (max_objs, 1)
+            'size_2d':       np.ndarray,  (max_objs, 2)
+            'heatmap':       np.ndarray,  (cls_num, H', W')
+            'offset_2d':     np.ndarray,  (max_objs, 2)
+            'indices':       np.ndarray,  (max_objs,)        flattened indices in heatmap
+            'size_3d':       np.ndarray,  (max_objs, 3)
+            'offset_3d':     np.ndarray,  (max_objs, 2)
+            'heading_bin':   np.ndarray,  (max_objs, 1)
+            'heading_res':   np.ndarray,  (max_objs, 1)
+            'cls_ids':       np.ndarray,  (max_objs,)
+            'mask_2d':       np.ndarray,  (max_objs,)        indicates which objects are valid
+            'vis_depth':     np.ndarray,  (max_objs, 7, 7)
+            'rotation_y':    np.ndarray,  (max_objs,)
+            'position':      np.ndarray,  (max_objs, 3)
+            'size_3d_smoke': np.ndarray,  (max_objs, 3)
+        }
+    """
+
+    # Prepare arrays for all targets
+    heatmap = np.zeros((num_classes, features_size[1], features_size[0]), dtype=np.float32)
+    size_2d = np.zeros((max_objs, 2), dtype=np.float32)
+    offset_2d = np.zeros((max_objs, 2), dtype=np.float32)
+    depth = np.zeros((max_objs, 1), dtype=np.float32)
+    heading_bin = np.zeros((max_objs, 1), dtype=np.int64)
+    heading_res = np.zeros((max_objs, 1), dtype=np.float32)
+    src_size_3d = np.zeros((max_objs, 3), dtype=np.float32)
+    size_3d = np.zeros((max_objs, 3), dtype=np.float32)
+    size_3d_smoke = np.zeros((max_objs, 3), dtype=np.float32)
+    offset_3d = np.zeros((max_objs, 2), dtype=np.float32)
+    height2d = np.zeros((max_objs, 1), dtype=np.float32)
+    cls_ids = np.zeros((max_objs), dtype=np.int64)
+    indices = np.zeros((max_objs), dtype=np.int64)
+    rotation_y = np.zeros((max_objs), dtype=np.float32)
+    position = np.zeros((max_objs, 3), dtype=np.float32)
+
+    # For mask, we can just use uint8 to indicate validity
+    mask_2d = np.zeros((max_objs), dtype=np.uint8)
+    vis_depth = np.zeros((max_objs, 7, 7), dtype=np.float32)
+
+    # Process each object, up to max_objs
+    object_num = min(len(objects), max_objs)
+    for i in range(object_num):
+        obj = objects[i]
+
+        # Filter out classes not in writelist or invalid samples
+        if obj.cls_type not in writelist:
+            continue
+        if obj.level_str == 'UnKnown' or obj.pos[-1] < 2:
+            continue
+
+        # Transform the 2D bounding box
+        bbox_2d = obj.box2d.copy()
+        bbox_2d[:2] = affine_transform(bbox_2d[:2], trans)
+        bbox_2d[2:] = affine_transform(bbox_2d[2:], trans)
+        bbox_2d[:] /= downsample
+
+        w = bbox_2d[2] - bbox_2d[0]
+        h = bbox_2d[3] - bbox_2d[1]
+        center_2d = np.array([(bbox_2d[0] + bbox_2d[2]) / 2.0,
+                              (bbox_2d[1] + bbox_2d[3]) / 2.0], dtype=np.float32)
+
+        # Compute 3D center: (x, y - h/2, z)
+        center_3d = obj.pos + [0, -obj.h / 2, 0]
+        center_3d = center_3d.reshape(-1, 3)
+        # Project to image plane
+        center_3d, _ = calib.rect_to_img(center_3d)
+        center_3d = affine_transform(center_3d[0], trans)
+        center_3d /= downsample
+
+        # Determine which center to place on heatmap
+        if use_3d_center:
+            c_hm = center_3d.astype(np.int32)
+        else:
+            c_hm = center_2d.astype(np.int32)
+
+        # Check if center is valid in final feature map
+        if (c_hm[0] < 0 or c_hm[0] >= features_size[0] or
+            c_hm[1] < 0 or c_hm[1] >= features_size[1]):
+            continue
+
+        # Heatmap radius
+        radius = gaussian_radius((w, h))
+        radius = max(0, int(radius))
+
+        # Possibly skip or merge certain classes
+        if obj.cls_type in ['Van', 'Truck', 'DontCare']:
+            # Example: place them in heatmap channel 1
+            draw_umich_gaussian(heatmap[1], c_hm, radius)
+            continue
+
+        # Class ID
+        cls_id = cls2id[obj.cls_type]
+        cls_ids[i] = cls_id
+        draw_umich_gaussian(heatmap[cls_id], c_hm, radius)
+
+        # Fill in the regression targets
+        indices[i] = c_hm[1] * features_size[0] + c_hm[0]
+        offset_2d[i] = center_2d - c_hm
+        size_2d[i] = [w, h]
+        depth[i] = obj.pos[-1]
+
+        # heading angle (alpha)
+        heading_angle = calib.ry2alpha(obj.ry, 0.5*(obj.box2d[0] + obj.box2d[2]))
+        # keep alpha in [-pi, pi]
+        if heading_angle > np.pi:
+            heading_angle -= 2 * np.pi
+        if heading_angle < -np.pi:
+            heading_angle += 2 * np.pi
+
+        bin_idx, res_val = angle2class(heading_angle)
+        heading_bin[i] = bin_idx
+        heading_res[i] = res_val
+
+        rotation_y[i] = obj.ry
+        position[i] = obj.pos
+
+        offset_3d[i] = center_3d - c_hm
+
+        # 3D size
+        src_size_3d[i] = np.array([obj.h, obj.w, obj.l], dtype=np.float32)
+        mean_size = cls_mean_size[cls_id]
+        size_3d[i] = src_size_3d[i] - mean_size
+        size_3d_smoke[i] = src_size_3d[i] / mean_size
+
+        # Visibility mask
+        if obj.trucation <= 0.5 and obj.occlusion <= 2:
+            mask_2d[i] = 1
+
+        vis_depth[i] = depth[i]
+
+    # Pack into a dictionary
+    targets = {
+        'depth': depth,
+        'size_2d': size_2d,
+        'heatmap': heatmap,
+        'offset_2d': offset_2d,
+        'indices': indices,
+        'size_3d': size_3d,
+        'offset_3d': offset_3d,
+        'heading_bin': heading_bin,
+        'heading_res': heading_res,
+        'cls_ids': cls_ids,
+        'mask_2d': mask_2d,
+        'vis_depth': vis_depth,
+        'rotation_y': rotation_y,
+        'position': position,
+        'size_3d_smoke': size_3d_smoke
+    }
+    return targets
+
+
+
+
 num_heading_bin = 12  # hyper param
 def check_range(angle):
     if angle > np.pi:  angle -= 2 * np.pi
