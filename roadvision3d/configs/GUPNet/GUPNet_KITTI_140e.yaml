@@ -2,7 +2,6 @@ dataset:
   type: 'kitti'
   data_dir: '/home/javier/datasets/kitti'
   label_dir: '/home/javier/datasets/kitti/training/label_2'
-  # split_dir : '/home/javier/pytorch/splits/KITTI_reduced'
   split_dir: '/home/javier/datasets/kitti/ImageSets'
   eval_cls: ['Car','Pedestrian','Cyclist']
   batch_size: 24
@@ -13,7 +12,7 @@ dataset:
   writelist: ['Car','Pedestrian','Cyclist']
   random_flip: 0.5
   random_crop: 0.5
-  random_mix: 0
+  random_mix: 0.5
   scale: 0.4
   shift: 0.1
   drop_last_val: False
@@ -37,12 +36,6 @@ model:
   loss_weight: [10., 5.]
   depth_ref: [28.01, 16.32]
 
-
-# optimizer:
-#   type: 'adam'
-#   lr: 0.001
-#   weight_decay: 0.00001
-
 optimizer:
   type: 'adam'
   lr: 0.0009375 # 0.0009375 #0.00125
@@ -60,17 +53,17 @@ trainer:
   eval_frequency: 10 # evaluation interval (in epoch)
   save_frequency: 70 # checkpoint save interval (in epoch)
   disp_frequency: 10 # display interval (in batch)
-  log_dir: 'work_dirs/GUPNet_KITTI_150e_EXP/logs/'
-  out_dir: 'work_dirs/GUPNet_KITTI_150e_EXP/output/'
+  log_dir: 'work_dirs/GUPNet_KITTI_150e/logs/'
+  out_dir: 'work_dirs/GUPNet_KITTI_150e/output/'
   resume_model: ''
 
 tester:
   threshold: 0.2  # confidence filter
   top_k: 50  # max number of boxes
-  out_dir: './GUPNet_KITTI_150e_EXP/testset_out'
+  out_dir: './GUPNet_KITTI_150e/testset_out'
   resume_model: '' # pre-trained model path
 
 
 wandb:
-  name: "GUPNet_KITTI_150e_EXP"
+  name: "GUPNet_KITTI_150e"
   notes: "GUPNet experimental trained on KITTI during 150e"
