@@ -99,17 +99,19 @@ class DataAugmention:
             objects: The updated list of objects.
         """
         for _ in range(50):
-            random_index = np.random.randint(len(self.dataset.idx_list))
-            random_index = int(self.dataset.idx_list[random_index])
-            calib_temp = self.dataset.get_calib(random_index)
+            random_idx = np.random.randint(len(self.dataset.idx_list))
+            random_idx = self.dataset.idx_list[random_idx]
+            # Convert if purely digits, else keep as a string
+            random_idx = int(random_idx) if random_idx.isdigit() else random_idx
+            calib_temp = self.dataset.get_calib(random_idx)
 
             # Check calibration compatibility
             if (calib_temp.cu == calib.cu and calib_temp.cv == calib.cv and
                 calib_temp.fu == calib.fu and calib_temp.fv == calib.fv):
                 
-                img_temp = self.dataset.get_image(random_index)
+                img_temp = self.dataset.get_image(random_idx)
                 if img_temp.size == img.size:
-                    objects_2 = self.dataset.get_label(random_index)
+                    objects_2 = self.dataset.get_label(random_idx)
 
                     # Check if combined object count is within limits
                     if (len(objects) + len(objects_2)) < self.max_objs:
