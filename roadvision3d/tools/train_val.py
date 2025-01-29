@@ -4,6 +4,8 @@ import yaml
 import logging
 import torch
 import gc
+import shutil
+
 
 import roadvision3d
 
@@ -15,6 +17,7 @@ from roadvision3d.src.engine.optimizer import build_optimizer
 from roadvision3d.src.engine.scheduler import build_lr_scheduler
 from roadvision3d.src.engine.logger import Logger
 from roadvision3d.src.engine.wandb_logger import WandbLogger
+
 
 # TODO: update this
 parser = argparse.ArgumentParser(description='implementation of MonoLSS')
@@ -31,7 +34,13 @@ def main():
     torch.cuda.set_device(device)
     assert (os.path.exists(args.config))
     cfg = yaml.load(open(args.config, 'r'), Loader=yaml.Loader)
+
     os.makedirs(cfg['trainer']['log_dir'], exist_ok=True)
+
+    # Save a copy of the config file to log directory
+    config_dst = os.path.join(cfg['trainer']['log_dir'], os.path.basename(args.config))
+    shutil.copy(args.config, config_dst)
+    
     logger = Logger(cfg['trainer']['log_dir'], 'train.log', cfg['trainer']['max_epoch'])
 
     # Initialize wandb
