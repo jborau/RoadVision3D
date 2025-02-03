@@ -5,6 +5,8 @@ import logging
 import torch
 import gc
 import shutil
+import argparse
+
 
 
 import roadvision3d
@@ -19,21 +21,29 @@ from roadvision3d.src.engine.logger import Logger
 from roadvision3d.src.engine.wandb_logger import WandbLogger
 
 
-# TODO: update this
-parser = argparse.ArgumentParser(description='implementation of MonoLSS')
-parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
-parser.add_argument('-t', '--test', dest='test', action='store_true', help='evaluate model on test set')
-parser.add_argument('--config', type=str, default='/home/javier/pytorch/RoadVision3D/roadvision3d/configs/kitti.yaml')
-parser.add_argument('--device', type=str, default='cuda:0')
-# parser.add_argument('--config', type=str, default='/home/javi/Desktop/server/RoadVision3D/roadvision3d/configs/kitti.yaml')
-args = parser.parse_args()    
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Train or evaluate the model.')
+    parser.add_argument('--config', type=str, required=True, help='Path to the config file.')
+    parser.add_argument('--device', type=str, default='cuda:0', help='Device to use for training.')
+    parser.add_argument('--evaluate', action='store_true', help='Run evaluation on the validation set.')
+    parser.add_argument('--test', action='store_true', help='Run evaluation on the test set.')
+    parser.add_argument('--resume_model', type=str, default=None, help='Path to the model to resume from. Overwrites cfg[\'tester\'][\'resume_model\'] if provided.')
+    return parser.parse_args()
+
+   
 
 def main():
     # load cfg
+    args = parse_args()
     device = args.device
     torch.cuda.set_device(device)
     assert (os.path.exists(args.config))
     cfg = yaml.load(open(args.config, 'r'), Loader=yaml.Loader)
+
+    # Overwrite resume_model if provided
+    if args.resume_model is not None:
+        cfg['tester']['resume_model'] = args.resume_model
 
     os.makedirs(cfg['trainer']['log_dir'], exist_ok=True)
 
