@@ -99,7 +99,7 @@ For detailed usage instructions, refer to the documentation:
 
 Supported Datasets
 
-Training
+[Training and Testing](docs/train_test.md)
 
 Inference
 
