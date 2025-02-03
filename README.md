@@ -8,6 +8,14 @@ The library allows users to train on implemented datasets such as **DAIR-V2X**, 
 
 ## Features
 
+RoadVision3D provides implementations for the following 3D object detection models:
+
+- MonoLSS: 
+
+- GUPNet
+
+- SMOKE
+
 1. **Dedicated Dataset Support**:
    - **DAIR-V2X Infrastructure**: Focused on infrastructure scenarios for autonomous driving.
    - **KITTI**: Widely used benchmark for 3D object detection and tracking.
@@ -82,8 +90,17 @@ python -c "import roadvision3d"
 
 ## Usage
 
-Coming soon...
+For detailed usage instructions, refer to the documentation:
 
+Supported Datasets
+
+Training
+
+Inference
+
+Evaluation
+
+Documentaion comming soon...
 ---
 
 ## License
