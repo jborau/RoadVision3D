@@ -105,7 +105,19 @@ Inference
 
 Evaluation
 
-Documentaion comming soon...
+Documentation comming soon...
+---
+
+## Citation
+
+If you use RoadVision3D in your research, please cite it as follows:
+
+@misc{roadvision3d,
+  author = {Javier Borau Bernad},
+  title = {RoadVision3D: A Library for 3D Object Detection from Roadside Infrastructure},
+  year = {2024},
+  howpublished = {\url{https://github.com/jborau/RoadVision3D}}
+}
 ---
 
 ## License
