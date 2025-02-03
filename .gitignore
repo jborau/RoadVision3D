@@ -1,5 +1,6 @@
 work_dirs/
 work_dirs_old/
+experiments/
 roadvision3d/data/
 wandb/
 *.pt
