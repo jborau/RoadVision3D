@@ -89,6 +89,7 @@ python train_val.py --config path/to/config.yaml --test --resume_model /path/to/
 The training and testing process relies on configuration files located in the `roadvision3d/configs/` directory. These YAML files define dataset parameters, model architecture, optimizer settings, and training schedules.
 
 For a detailed explanation of configuration options, refer to [configs.md](docs/configs.md).
+
 ---
 
 ## Notes
