@@ -7,7 +7,6 @@ from roadvision3d.src.models.heads.head import build_heads
 class GUPNetDetector(nn.Module):
     def __init__(self, cfg, device):
         super(GUPNetDetector, self).__init__()
-        print("Using GUPNet Detector")
         self.device = device
         self.backbone = build_backbone(cfg['model'])
 
