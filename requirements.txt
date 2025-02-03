@@ -1,0 +1,13 @@
+numpy
+pandas
+matplotlib
+opencv-python
+scipy
+tqdm
+pyyaml
+einops
+wandb
+open3d
+seaborn
+gitpython
+ultralytics
