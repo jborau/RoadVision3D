@@ -122,8 +122,15 @@ def generate_and_save_plots(json_file):
     training_data = load_training_data(json_file)
     lr_per_epoch, overall_loss_per_epoch, individual_losses_per_epoch, loss_names = extract_lr_and_loss_data(training_data)
     
-    # Determine the directory to save plots
-    output_dir = os.path.dirname(json_file)
+    # Get the directory of the JSON file
+    base_dir = os.path.dirname(json_file)
+
+    # Define the new directory for plots
+    output_dir = os.path.join(base_dir, 'plots')
+
+    # Create the directory if it doesn't exist
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     
     # Plot and save Learning Rate Evolution
     lr_plot_path = os.path.join(output_dir, 'learning_rate_evolution.png')
