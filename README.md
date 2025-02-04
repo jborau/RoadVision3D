@@ -97,7 +97,7 @@ python -c "import roadvision3d"
 
 For detailed usage instructions, refer to the documentation:
 
-Supported Datasets
+[Supported Datasets](docs/datasets.md)
 
 [Training and Testing](docs/train_test.md)
 
