@@ -101,6 +101,8 @@ For detailed usage instructions, refer to the documentation:
 
 [Training and Testing](docs/train_test.md)
 
+[Configuration Files](docs/configs.md)
+
 Inference
 
 Evaluation
