@@ -32,12 +32,21 @@ dataset:
   class_merging: False  # Whether to merge similar classes
   use_dontcare: False  # Whether to use "DontCare" labeled regions
   use_3d_center: True  # Use 3D center as target
+  writelist: ['Car','Pedestrian','Cyclist']
   random_flip: 0.5  # Probability of random horizontal flip
   random_crop: 0.5  # Probability of random cropping
   random_mix: 0.5  # Probability of randomly mixing images
   scale: 0.4  # Scaling factor for augmentations
   shift: 0.1  # Shift range for augmentations
+  drop_last_val: True # Drop last iteration if batch is not completed
+  cls_mean_size: [[1.69076256, 1.95625980, 4.59149442], # classes mean size of the dataset
+                  [1.64686968, 0.56291266, 0.52403671],
+                  [1.42871768, 0.64937362, 1.68556033]]
+  max_objs: 100
   resolution: [1280, 384]  # Input image resolution
+  mean: [0.485, 0.456, 0.406] # Img processing
+  std: [0.229, 0.224, 0.225]
+  downsample: 4
 ```
 
 ---
