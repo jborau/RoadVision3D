@@ -2,7 +2,7 @@
 
 This document explains the **Object3D** and **Calibration** classes used in RoadVision3D. These modules handle 3D object representation and coordinate transformations between different reference frames.
 
-> **Note:** This implementation is inspired by [MonoLSS](https://github.com/Traffic-X/MonoLSS).
+> **Note:** This implementation is based in Object3d and Calibration modules from [MonoLSS](https://github.com/Traffic-X/MonoLSS).
 
 ---
 
