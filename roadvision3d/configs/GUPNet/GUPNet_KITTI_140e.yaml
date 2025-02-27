@@ -31,14 +31,14 @@ model:
   backbone: 'dla34'
   neck: 'DLAUp'
   head: 'GUPNetHead'
-  loss: 'asfd'
+  loss: ''
   downsample: 4
   loss_weight: [10., 5.]
   depth_ref: [28.01, 16.32]
 
 optimizer:
   type: 'adam'
-  lr: 0.0009375 # 0.0009375 #0.00125
+  lr: 0.0009375 #0.00125 if batch_size=32 or 0.0009375 if batch_size=24
   weight_decay: 0.00001
 
 lr_scheduler:
@@ -53,17 +53,17 @@ trainer:
   eval_frequency: 10 # evaluation interval (in epoch)
   save_frequency: 70 # checkpoint save interval (in epoch)
   disp_frequency: 10 # display interval (in batch)
-  log_dir: 'work_dirs/GUPNet_KITTI_150e/logs/'
-  out_dir: 'work_dirs/GUPNet_KITTI_150e/output/'
+  log_dir: 'work_dirs/GUPNet_KITTI_140e_MixUp/logs/'
+  out_dir: 'work_dirs/GUPNet_KITTI_140e_MixUp/output/'
   resume_model: ''
 
 tester:
   threshold: 0.2  # confidence filter
   top_k: 50  # max number of boxes
-  out_dir: './GUPNet_KITTI_150e/testset_out'
+  out_dir: './GUPNet_KITTI_140e_MixUp/testset_out'
   resume_model: '' # pre-trained model path
 
 
 wandb:
-  name: "GUPNet_KITTI_150e"
-  notes: "GUPNet experimental trained on KITTI during 150e"
+  name: "GUPNet_KITTI_140e"
+  notes: "GUPNet experimental trained on KITTI during 140e"

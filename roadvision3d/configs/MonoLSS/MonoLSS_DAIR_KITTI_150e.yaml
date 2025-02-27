@@ -47,19 +47,19 @@ lr_scheduler:
 
 trainer:
   max_epoch: 150
-  eval_start: 1
-  eval_frequency: 1 # evaluation interval (in epoch)
+  eval_start: 10
+  eval_frequency: 10 # evaluation interval (in epoch)
   save_frequency: 50 # checkpoint save interval (in epoch)
   disp_frequency: 100 # display interval (in batch)
-  log_dir: 'work_dirs/MonoLSS_DAIR_KITTI_150e/logs/'
-  out_dir: 'work_dirs/MonoLSS_DAIR_KITTI_150e/output/'
+  log_dir: 'work_dirs/MonoLSS_DAIR_KITTI_150e_MixUp/logs/'
+  out_dir: 'work_dirs/MonoLSS_DAIR_KITTI_150e_MixUp/output/'
   # resume_model: ''
 
 tester:
   threshold: 0.2  # confidence filter
   top_k: 50  # max number of boxes
-  out_dir: 'work_dirs/MonoLSS_DAIR_KITTI_150e/testset_out'
-  resume_model: '/home/javier/pytorch/RoadVision3D/work_dirs/MonoLSS_DAIR_KITTI_150e/logs/checkpoints/checkpoint_epoch_150.pth' # pre-trained model path
+  out_dir: 'work_dirs/MonoLSS_DAIR_KITTI_150e_MixUp/testset_out'
+  resume_model: '' # pre-trained model path
 
 wandb:
   name: "MonoLSS_DAIR_KITTI_150e"

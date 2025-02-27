@@ -52,14 +52,14 @@ trainer:
   eval_frequency: 10 # evaluation interval (in epoch)
   save_frequency: 50 # checkpoint save interval (in epoch)
   disp_frequency: 10 # display interval (in batch)
-  log_dir: 'work_dirs/MonoLSS_DAIR_150e/logs/'
-  out_dir: 'work_dirs/MonoLSS_DAIR_150e/output/'
+  log_dir: 'work_dirs/MonoLSS_DAIR_150e_MixUp/logs/'
+  out_dir: 'work_dirs/MonoLSS_DAIR_150e_MixUp/output/'
   # resume_model: ''
 
 tester:
   threshold: 0.2  # confidence filter
   top_k: 50  # max number of boxes
-  out_dir: 'work_dirs/MonoLSS_DAIR_150e/testset_out'
+  out_dir: 'work_dirs/MonoLSS_DAIR_150e_MixUp/testset_out'
   resume_model: '' # pre-trained model path
 
 
